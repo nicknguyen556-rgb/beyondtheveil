@@ -3,7 +3,7 @@
  * Premium sync (Supabase) will mirror these tables later — not wired yet.
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA foreign_keys = ON;
@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS observations (
   longitude REAL,
   captured_at TEXT NOT NULL,
   place_label TEXT,
+  place_source TEXT CHECK (place_source IS NULL OR place_source IN ('exif', 'device', 'manual')),
+  time_source TEXT CHECK (time_source IS NULL OR time_source IN ('exif', 'device', 'manual')),
   tags_json TEXT NOT NULL DEFAULT '[]',
   outcome_rating INTEGER,
   outcome_notes TEXT,
@@ -59,3 +61,11 @@ CREATE TABLE IF NOT EXISTS trend_views (
   updated_at TEXT NOT NULL
 );
 `;
+
+/** Additive migrations for existing installs created at schema v1. */
+export const MIGRATIONS: Record<number, string[]> = {
+  2: [
+    `ALTER TABLE observations ADD COLUMN place_source TEXT`,
+    `ALTER TABLE observations ADD COLUMN time_source TEXT`,
+  ],
+};

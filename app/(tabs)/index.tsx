@@ -2,15 +2,16 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { PhotoPermissionError, pickPhoto } from '@/capture/pickPhoto';
+import { ingestPhotoAsset } from '@/capture/persistPhoto';
+import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { useDatabase } from '@/db/DatabaseProvider';
-import { createObservation } from '@/db/observations';
 import { colors } from '@/theme/colors';
 
 /**
- * Capture stage of the core loop.
- * Photo ingest + EXIF land in GD-4; this shell creates a local observation draft.
+ * Capture stage: camera or gallery → EXIF place/time (with GPS/manual fallbacks) → SQLite.
  */
 export default function CaptureScreen() {
   const router = useRouter();
@@ -18,18 +19,34 @@ export default function CaptureScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function startObservation() {
+  async function ingest(source: 'camera' | 'gallery') {
     if (!db || busy) return;
     setBusy(true);
     setMessage(null);
     try {
-      const observation = await createObservation(db, {
-        placeLabel: 'Untitled spot',
-      });
-      setMessage('Draft observation saved locally.');
+      const asset = await pickPhoto(source);
+      if (!asset) {
+        setMessage('Cancelled.');
+        return;
+      }
+
+      const result = await ingestPhotoAsset(db, asset);
+      const { observation, placeSource, timeSource } = result;
+      setMessage(
+        [
+          'Saved locally.',
+          formatSourceLabel('place', placeSource),
+          formatCoords(observation.latitude, observation.longitude),
+          formatSourceLabel('time', timeSource),
+        ].join(' · '),
+      );
       router.push(`/observation/${observation.id}`);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Could not create observation');
+      if (err instanceof PhotoPermissionError) {
+        setMessage(err.message);
+      } else {
+        setMessage(err instanceof Error ? err.message : 'Could not ingest photo');
+      }
     } finally {
       setBusy(false);
     }
@@ -38,17 +55,23 @@ export default function CaptureScreen() {
   return (
     <Screen
       title="Capture"
-      subtitle="Photo → place & time → enrichment. Start a local observation draft."
+      subtitle="Photo → place & time → enrichment. EXIF first; GPS and manual pin as fallbacks."
     >
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>1 · Photo</Text>
         <Text style={styles.body}>
-          Camera and gallery import come next. For now, create a draft observation
-          so place/time and enrichment screens can be wired against the SQLite store.
+          Take a photo or import from your library. We read EXIF GPS and datetime when
+          present, otherwise fall back to device GPS (and you can set a map pin or time
+          on the observation).
         </Text>
         <PrimaryButton
-          label={busy ? 'Creating…' : 'New observation draft'}
-          onPress={startObservation}
+          label={busy ? 'Working…' : 'Take photo'}
+          onPress={() => ingest('camera')}
+          disabled={!db || busy}
+        />
+        <PrimaryButton
+          label={busy ? 'Working…' : 'Import from gallery'}
+          onPress={() => ingest('gallery')}
           disabled={!db || busy}
         />
         {message ? <Text style={styles.hint}>{message}</Text> : null}
@@ -92,6 +115,7 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 13,
     color: colors.muted,
+    lineHeight: 18,
   },
   pipeline: {
     gap: 8,

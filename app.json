@@ -15,7 +15,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.beyondtheveil.geocatch"
+      "bundleIdentifier": "com.beyondtheveil.geocatch",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Geocatch needs the camera to capture field photos.",
+        "NSPhotoLibraryUsageDescription": "Geocatch needs your library to import field photos.",
+        "NSLocationWhenInUseUsageDescription": "Geocatch uses your location when a photo has no EXIF GPS, and for map pins."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +30,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.beyondtheveil.geocatch",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -33,7 +44,20 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Geocatch to import field photos.",
+          "cameraPermission": "Allow Geocatch to capture field photos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Geocatch to use your location when EXIF GPS is missing or for map pins."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
