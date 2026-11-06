@@ -1,10 +1,19 @@
 import * as SQLite from 'expo-sqlite';
 
-import { CREATE_TABLES_SQL, SCHEMA_VERSION } from './schema';
+import { CREATE_TABLES_SQL, MIGRATIONS, SCHEMA_VERSION } from './schema';
 
 const DATABASE_NAME = 'geocatch.db';
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+
+async function columnExists(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+): Promise<boolean> {
+  const rows = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  return rows.some((row) => row.name === column);
+}
 
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(CREATE_TABLES_SQL);
@@ -14,14 +23,32 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
     ['schema_version'],
   );
 
-  const current = row ? Number(row.value) : 0;
-  if (current < SCHEMA_VERSION) {
-    await db.runAsync(
-      `INSERT INTO meta (key, value) VALUES (?, ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-      ['schema_version', String(SCHEMA_VERSION)],
-    );
+  let current = row ? Number(row.value) : 0;
+
+  // Fresh installs create v2 tables via CREATE_TABLES_SQL — stamp current.
+  if (current === 0) {
+    const hasPlaceSource = await columnExists(db, 'observations', 'place_source');
+    current = hasPlaceSource ? SCHEMA_VERSION : 1;
   }
+
+  for (let next = current + 1; next <= SCHEMA_VERSION; next += 1) {
+    const statements = MIGRATIONS[next] ?? [];
+    for (const sql of statements) {
+      try {
+        await db.execAsync(sql);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // Ignore duplicate-column races when CREATE already included the fields.
+        if (!/duplicate column/i.test(message)) throw err;
+      }
+    }
+  }
+
+  await db.runAsync(
+    `INSERT INTO meta (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    ['schema_version', String(SCHEMA_VERSION)],
+  );
 }
 
 /** Opens (or reuses) the on-device SQLite database and applies migrations. */

@@ -1,7 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { Screen } from '@/components/Screen';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { listObservations } from '@/db/observations';
@@ -40,7 +41,7 @@ export default function ObservationsScreen() {
   return (
     <Screen
       title="Observations"
-      subtitle="Local SQLite log — offline without premium sync."
+      subtitle="Local SQLite log — photo, place, and time from capture."
     >
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -48,8 +49,7 @@ export default function ObservationsScreen() {
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>No observations yet</Text>
           <Text style={styles.emptyBody}>
-            Capture a draft on the Capture tab. Place/time and enrichment attach
-            to each observation row.
+            Capture or import a photo. EXIF place/time (or GPS fallbacks) land on each row.
           </Text>
         </View>
       ) : (
@@ -59,13 +59,26 @@ export default function ObservationsScreen() {
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             onPress={() => router.push(`/observation/${item.id}`)}
           >
-            <Text style={styles.rowTitle}>{item.placeLabel ?? 'Untitled spot'}</Text>
-            <Text style={styles.rowMeta}>
-              {new Date(item.capturedAt).toLocaleString()}
-              {item.latitude != null && item.longitude != null
-                ? ` · ${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}`
-                : ' · place pending'}
-            </Text>
+            {item.photoUri ? (
+              <Image source={{ uri: item.photoUri }} style={styles.thumb} />
+            ) : (
+              <View style={[styles.thumb, styles.thumbPlaceholder]}>
+                <Text style={styles.thumbPlaceholderText}>No photo</Text>
+              </View>
+            )}
+            <View style={styles.rowBody}>
+              <Text style={styles.rowTitle}>{item.placeLabel ?? 'Untitled spot'}</Text>
+              <Text style={styles.rowMeta}>
+                {new Date(item.capturedAt).toLocaleString()}
+                {' · '}
+                {formatCoords(item.latitude, item.longitude)}
+              </Text>
+              <Text style={styles.rowSources}>
+                {formatSourceLabel('place', item.placeSource)}
+                {' · '}
+                {formatSourceLabel('time', item.timeSource)}
+              </Text>
+            </View>
           </Pressable>
         ))
       )}
@@ -95,11 +108,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    gap: 4,
+    padding: 10,
+    gap: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   rowPressed: {
     backgroundColor: colors.accentSoft,
+  },
+  thumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+  },
+  thumbPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbPlaceholderText: {
+    fontSize: 11,
+    color: colors.muted,
+  },
+  rowBody: {
+    flex: 1,
+    gap: 2,
   },
   rowTitle: {
     fontSize: 16,
@@ -109,6 +142,10 @@ const styles = StyleSheet.create({
   rowMeta: {
     fontSize: 13,
     color: colors.muted,
+  },
+  rowSources: {
+    fontSize: 12,
+    color: colors.accent,
   },
   error: {
     color: colors.danger,

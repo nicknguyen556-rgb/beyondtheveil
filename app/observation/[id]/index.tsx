@@ -1,7 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { formatCoords, formatSourceLabel } from '@/capture/format';
+import { getCurrentDeviceGps } from '@/capture/placeTime';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { useDatabase } from '@/db/DatabaseProvider';
@@ -15,17 +17,19 @@ import { colors } from '@/theme/colors';
 import type { Observation, Signal } from '@/types/models';
 
 /**
- * Place/time + enrichment shell for a single observation.
- * Real EXIF/GPS and weather APIs arrive in later tasks.
+ * Place/time + enrichment for a single observation.
+ * Shows saved photo and lets the user fix GPS / time when EXIF was incomplete.
  */
 export default function ObservationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { db } = useDatabase();
   const [observation, setObservation] = useState<Observation | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [placeLabel, setPlaceLabel] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [capturedLocal, setCapturedLocal] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -36,6 +40,7 @@ export default function ObservationDetailScreen() {
       setPlaceLabel(row.placeLabel ?? '');
       setLatitude(row.latitude != null ? String(row.latitude) : '');
       setLongitude(row.longitude != null ? String(row.longitude) : '');
+      setCapturedLocal(toLocalInputValue(row.capturedAt));
       setSignals(await listSignalsForObservation(db, row.id));
     }
   }, [db, id]);
@@ -47,18 +52,48 @@ export default function ObservationDetailScreen() {
   }, [reload]);
 
   async function savePlaceTime() {
-    if (!db || !id) return;
+    if (!db || !id || !observation) return;
     try {
+      const parsedTime = fromLocalInputValue(capturedLocal);
+      const nextLat = latitude.trim() === '' ? null : Number(latitude);
+      const nextLon = longitude.trim() === '' ? null : Number(longitude);
+      const placeChanged =
+        nextLat !== observation.latitude || nextLon !== observation.longitude;
+      const timeChanged =
+        parsedTime != null && parsedTime !== observation.capturedAt;
+
       await updateObservationPlaceTime(db, id, {
         placeLabel: placeLabel.trim() || null,
-        latitude: latitude.trim() === '' ? null : Number(latitude),
-        longitude: longitude.trim() === '' ? null : Number(longitude),
+        latitude: nextLat,
+        longitude: nextLon,
+        capturedAt: parsedTime ?? undefined,
+        placeSource: placeChanged ? 'manual' : undefined,
+        timeSource: timeChanged ? 'manual' : undefined,
       });
       setStatus('Place & time saved locally.');
       await reload();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : 'Save failed');
     }
+  }
+
+  async function useDeviceGps() {
+    setStatus('Reading device GPS…');
+    const gps = await getCurrentDeviceGps();
+    if (!gps) {
+      setStatus('Location permission denied or unavailable.');
+      return;
+    }
+    setLatitude(String(gps.latitude));
+    setLongitude(String(gps.longitude));
+    if (!db || !id) return;
+    await updateObservationPlaceTime(db, id, {
+      latitude: gps.latitude,
+      longitude: gps.longitude,
+      placeSource: 'device',
+    });
+    setStatus('Updated from device GPS.');
+    await reload();
   }
 
   async function addDefaultEnrichmentShell() {
@@ -99,10 +134,25 @@ export default function ObservationDetailScreen() {
   return (
     <Screen
       title={observation.placeLabel ?? 'Observation'}
-      subtitle="Core loop: place/time → enrichment against the local store."
+      subtitle="Photo saved. Confirm or fix place and time before enrichment."
     >
+      {observation.photoUri ? (
+        <Image source={{ uri: observation.photoUri }} style={styles.hero} />
+      ) : null}
+
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>2 · Place & time</Text>
+        <Text style={styles.meta}>
+          {formatCoords(observation.latitude, observation.longitude)}
+          {' · '}
+          {formatSourceLabel('place', observation.placeSource)}
+        </Text>
+        <Text style={styles.meta}>
+          {new Date(observation.capturedAt).toLocaleString()}
+          {' · '}
+          {formatSourceLabel('time', observation.timeSource)}
+        </Text>
+
         <Text style={styles.label}>Place label</Text>
         <TextInput
           value={placeLabel}
@@ -111,6 +161,7 @@ export default function ObservationDetailScreen() {
           placeholderTextColor={colors.muted}
           style={styles.input}
         />
+
         <View style={styles.row}>
           <View style={styles.half}>
             <Text style={styles.label}>Latitude</Text>
@@ -135,10 +186,23 @@ export default function ObservationDetailScreen() {
             />
           </View>
         </View>
-        <Text style={styles.meta}>
-          Captured {new Date(observation.capturedAt).toLocaleString()}
-        </Text>
+
+        <Text style={styles.label}>Captured time (local)</Text>
+        <TextInput
+          value={capturedLocal}
+          onChangeText={setCapturedLocal}
+          placeholder="YYYY-MM-DD HH:mm"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          autoCapitalize="none"
+        />
+
         <PrimaryButton label="Save place & time" onPress={savePlaceTime} />
+        <PrimaryButton label="Use current GPS" onPress={useDeviceGps} />
+        <PrimaryButton
+          label="Set map pin"
+          onPress={() => router.push(`/observation/${id}/pin`)}
+        />
       </View>
 
       <View style={styles.panel}>
@@ -168,7 +232,31 @@ export default function ObservationDetailScreen() {
   );
 }
 
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInputValue(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Invalid time. Use YYYY-MM-DD HH:mm');
+  }
+  return date.toISOString();
+}
+
 const styles = StyleSheet.create({
+  hero: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+  },
   panel: {
     backgroundColor: colors.surface,
     borderRadius: 12,

@@ -10,8 +10,8 @@ Photo-anchored field journaling for iOS and Android. Capture pins place and time
 
 ## Core loop (foundation)
 
-1. **Capture** — create a local observation draft (photo ingest next)
-2. **Place / time** — edit lat/lon, label, timestamp on the observation screen
+1. **Capture** — camera or gallery import; EXIF GPS/time with device GPS fallback
+2. **Place / time** — confirm on the observation screen; map pin + manual time when needed
 3. **Enrichment** — attach default signal shells (weather / solar) locally
 4. **Trends** — chart UI reserved; schema includes `trend_views`
 
@@ -31,7 +31,8 @@ npm run typecheck
 ## Project layout
 
 ```
-app/                 # expo-router screens
+app/                 # expo-router screens (Capture, Log, detail, map pin)
+src/capture/         # Photo pick, EXIF parse, place/time resolve, persist
 src/db/              # SQLite client, schema, observation repo
 src/types/           # Observation, Signal, TrendView models
 src/components/      # Shared UI shell
