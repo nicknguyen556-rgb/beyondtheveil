@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { getCurrentDeviceGps } from '@/capture/placeTime';
@@ -8,13 +8,37 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { useDatabase } from '@/db/DatabaseProvider';
 import {
-  addSignal,
   getObservation,
   listSignalsForObservation,
   updateObservationPlaceTime,
 } from '@/db/observations';
+import { catalogLabel, SIGNAL_CATALOG } from '@/enrichment/catalog';
+import { enrichObservation } from '@/enrichment/enrichObservation';
 import { colors } from '@/theme/colors';
 import type { Observation, Signal } from '@/types/models';
+
+/** Display order for enrichment panels — required first, then extras. */
+const DETAIL_SIGNAL_ORDER = [
+  'solar.time_of_day',
+  'solar.daylight_remaining_min',
+  'weather.pressure_msl',
+  'weather.wind_speed',
+  'weather.wind_direction',
+  'weather.humidity',
+  'weather.uv_index',
+  'water.temperature',
+  'weather.precipitation',
+  'weather.temperature',
+  'weather.feels_like',
+  'weather.cloud_cover',
+  'weather.visibility',
+  'weather.dew_point',
+  'weather.wind_gusts',
+  'weather.conditions',
+  'solar.sunrise',
+  'solar.sunset',
+  'solar.moon_phase',
+] as const;
 
 /**
  * Place/time + enrichment for a single observation.
@@ -31,6 +55,7 @@ export default function ObservationDetailScreen() {
   const [longitude, setLongitude] = useState('');
   const [capturedLocal, setCapturedLocal] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
 
   const reload = useCallback(async () => {
     if (!db || !id) return;
@@ -50,6 +75,40 @@ export default function ObservationDetailScreen() {
       setStatus(err instanceof Error ? err.message : 'Failed to load observation');
     });
   }, [reload]);
+
+  const signalByKey = useMemo(() => {
+    const map = new Map<string, Signal>();
+    for (const signal of signals) {
+      map.set(signal.key, signal);
+    }
+    return map;
+  }, [signals]);
+
+  const enrichmentMeta = useMemo(() => {
+    return {
+      status: signalByKey.get('enrichment.status')?.value ?? null,
+      error: signalByKey.get('enrichment.error')?.value ?? null,
+      fetchedAt: signalByKey.get('enrichment.fetched_at')?.value ?? null,
+      provider: signalByKey.get('enrichment.provider')?.value ?? null,
+    };
+  }, [signalByKey]);
+
+  const displaySignals = useMemo(() => {
+    const ordered: Signal[] = [];
+    const seen = new Set<string>();
+    for (const key of DETAIL_SIGNAL_ORDER) {
+      const signal = signalByKey.get(key);
+      if (signal) {
+        ordered.push(signal);
+        seen.add(key);
+      }
+    }
+    for (const signal of signals) {
+      if (seen.has(signal.key) || signal.key.startsWith('enrichment.')) continue;
+      ordered.push(signal);
+    }
+    return ordered;
+  }, [signalByKey, signals]);
 
   async function savePlaceTime() {
     if (!db || !id || !observation) return;
@@ -72,6 +131,10 @@ export default function ObservationDetailScreen() {
       });
       setStatus('Place & time saved locally.');
       await reload();
+
+      if (nextLat != null && nextLon != null && Number.isFinite(nextLat) && Number.isFinite(nextLon)) {
+        await runEnrichment();
+      }
     } catch (err) {
       setStatus(err instanceof Error ? err.message : 'Save failed');
     }
@@ -96,30 +159,18 @@ export default function ObservationDetailScreen() {
     await reload();
   }
 
-  async function addDefaultEnrichmentShell() {
-    if (!db || !id) return;
+  async function runEnrichment() {
+    if (!db || !id || enriching) return;
+    setEnriching(true);
+    setStatus('Fetching Open-Meteo weather & solar context…');
     try {
-      const existingKeys = new Set(signals.map((s) => s.key));
-      const defaults: Array<{ key: string; value: string; unit: string | null }> = [
-        { key: 'weather.summary', value: 'pending', unit: null },
-        { key: 'solar.relative', value: 'pending', unit: null },
-      ];
-      for (const item of defaults) {
-        if (!existingKeys.has(item.key)) {
-          await addSignal(db, {
-            observationId: id,
-            key: item.key,
-            source: 'api',
-            value: item.value,
-            unit: item.unit,
-            confidence: null,
-          });
-        }
-      }
-      setStatus('Default enrichment placeholders attached (API fetch later).');
+      const result = await enrichObservation(db, id);
+      setStatus(result.message);
       await reload();
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Enrichment shell failed');
+      setStatus(err instanceof Error ? err.message : 'Enrichment failed');
+    } finally {
+      setEnriching(false);
     }
   }
 
@@ -131,10 +182,16 @@ export default function ObservationDetailScreen() {
     );
   }
 
+  const canEnrich =
+    observation.latitude != null &&
+    observation.longitude != null &&
+    Number.isFinite(observation.latitude) &&
+    Number.isFinite(observation.longitude);
+
   return (
     <Screen
       title={observation.placeLabel ?? 'Observation'}
-      subtitle="Photo saved. Confirm or fix place and time before enrichment."
+      subtitle="Photo saved. Confirm place and time, then pull weather for that moment."
     >
       {observation.photoUri ? (
         <Image source={{ uri: observation.photoUri }} style={styles.hero} />
@@ -208,28 +265,74 @@ export default function ObservationDetailScreen() {
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>3 · Enrichment</Text>
         <Text style={styles.body}>
-          Default signals (weather summary, solar position) will resolve from
-          place + time. This shell stores placeholder signal rows locally.
+          Open-Meteo fills weather and solar signals for this place and time. Water
+          temperature is included when marine coverage exists; otherwise marked
+          unavailable for free-text later.
         </Text>
-        <PrimaryButton label="Attach default signal shells" onPress={addDefaultEnrichmentShell} />
-        {signals.length === 0 ? (
-          <Text style={styles.muted}>No signals yet.</Text>
+
+        <PrimaryButton
+          label={enriching ? 'Enriching…' : 'Fetch weather & solar'}
+          onPress={runEnrichment}
+          disabled={!canEnrich || enriching}
+        />
+
+        {enriching ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.muted}>Talking to Open-Meteo…</Text>
+          </View>
+        ) : null}
+
+        {!canEnrich ? (
+          <Text style={styles.muted}>
+            Add latitude and longitude before enrichment can run.
+          </Text>
+        ) : null}
+
+        {enrichmentMeta.status ? (
+          <Text style={styles.meta}>
+            Status: {enrichmentMeta.status}
+            {enrichmentMeta.provider ? ` · ${enrichmentMeta.provider}` : ''}
+            {enrichmentMeta.fetchedAt
+              ? ` · ${new Date(enrichmentMeta.fetchedAt).toLocaleString()}`
+              : ''}
+          </Text>
+        ) : null}
+
+        {enrichmentMeta.error ? (
+          <Text style={styles.warn}>{enrichmentMeta.error}</Text>
+        ) : null}
+
+        {displaySignals.length === 0 ? (
+          <Text style={styles.muted}>No enrichment signals yet.</Text>
         ) : (
-          signals.map((signal) => (
+          displaySignals.map((signal) => (
             <View key={signal.id} style={styles.signalRow}>
-              <Text style={styles.signalKey}>{signal.key}</Text>
+              <Text style={styles.signalKey}>{catalogLabel(signal.key)}</Text>
               <Text style={styles.signalValue}>
-                {signal.value ?? '—'}
-                {signal.unit ? ` ${signal.unit}` : ''} · {signal.source}
+                {formatSignalValue(signal)}
+                {' · '}
+                {signal.source}
               </Text>
             </View>
           ))
         )}
+
+        <Text style={styles.catalogHint}>
+          Catalog: {SIGNAL_CATALOG.filter((e) => e.trendable).length} trendable
+          signals documented in README.
+        </Text>
       </View>
 
       {status ? <Text style={styles.status}>{status}</Text> : null}
     </Screen>
   );
+}
+
+function formatSignalValue(signal: Signal): string {
+  if (signal.value == null || signal.value === '') return '—';
+  if (signal.value === 'unavailable') return 'unavailable (free-text ready)';
+  return `${signal.value}${signal.unit ? ` ${signal.unit}` : ''}`;
 }
 
 function toLocalInputValue(iso: string): string {
@@ -320,8 +423,22 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
   },
+  warn: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.accent,
+  },
   status: {
     fontSize: 13,
     color: colors.accent,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  catalogHint: {
+    fontSize: 12,
+    color: colors.muted,
   },
 });
