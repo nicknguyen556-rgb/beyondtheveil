@@ -1,6 +1,6 @@
 /**
  * Curated source + dataset registry with reliability ranking.
- * Suggestion lists are capped at SUGGESTIONS_CAP (5).
+ * Suggestion and custom lists are both capped at SUGGESTIONS_CAP (5).
  */
 
 import {

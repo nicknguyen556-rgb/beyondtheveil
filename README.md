@@ -33,7 +33,7 @@ npm run typecheck
 
 Multi-source merge: selected providers are fetched in parallel; **numeric fields are averaged** per signal; **std-dev** + per-source **samples** are stored for charts (`{key}.std_dev`, `enrichment.sources` JSON).
 
-**Modes (per dataset):** `top3` (usage-biased reliability, cold-start = ranking), `suggestions` (curated list **cap 5**), `custom` (user picks, **no hard cap**). Prefs in `enrichment_prefs`; usage in `source_usage`.
+**Modes (per dataset):** `top3` (usage-biased reliability, cold-start = ranking), `suggestions` (curated list **cap 5**), `custom` (user picks, **also cap 5** — UI rejects extras; merge/prefs truncate with a clear message). Prefs in `enrichment_prefs`; usage in `source_usage`.
 
 **Providers:** Open-Meteo (keyless forecast/archive + marine), MET Norway (keyless), OpenWeather / WeatherAPI (env keys), NWS (US). User-requested keys use the same pipeline via `resolveUserSignal`; total miss → `unavailable` free-text fallback.
 

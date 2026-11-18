@@ -2,6 +2,7 @@
  * Resolve which sources to call for a dataset given selection mode + usage.
  */
 
+import { capCustomSourceIds } from './cap';
 import {
   suggestedSourcesForDataset,
   sourcesForDataset,
@@ -15,12 +16,12 @@ import type {
   SourceSelectionMode,
   SourceUsageRow,
 } from './types';
-import { TOP3_COUNT } from './types';
+import { CUSTOM_SOURCE_CAP, SUGGESTIONS_CAP, TOP3_COUNT } from './types';
 
 export interface SourceSelectionInput {
   datasetId: DatasetId;
   mode: SourceSelectionMode;
-  /** Required when mode is custom; ignored otherwise. No hard cap. */
+  /** Required when mode is custom; ignored otherwise. Hard-capped at 5. */
   customSourceIds?: readonly SourceId[];
   /** Local usage rows for this dataset (usage-bias for top3). */
   usage?: readonly SourceUsageRow[];
@@ -68,7 +69,7 @@ export function rankSources(
  * Select sources for a dataset (or a single signal key) under the given mode.
  * - top3 → up to 3 after ranking (usage-biased)
  * - suggestions → curated list capped at 5
- * - custom → user list, no hard cap (configured filter still applies)
+ * - custom → user list, also hard-capped at 5 (extras truncated with a note)
  */
 export function selectSources(
   input: SourceSelectionInput,
@@ -103,7 +104,9 @@ export function selectSources(
   }
 
   if (input.mode === 'custom') {
-    const wanted = input.customSourceIds ?? [];
+    const cappedWanted = capCustomSourceIds(input.customSourceIds ?? []);
+    if (cappedWanted.message) notes.push(cappedWanted.message);
+    const wanted = cappedWanted.sourceIds;
     if (wanted.length === 0) {
       notes.push('Custom mode with empty selection — no sources');
       return { mode: 'custom', sources: [], notes };
@@ -115,8 +118,17 @@ export function selectSources(
       if (source) selected.push(source);
       else notes.push(`Custom source ${id} unavailable for this dataset/key`);
     }
-    // No hard cap — keep user order.
-    return { mode: 'custom', sources: selected, notes };
+    // Defense in depth — never exceed CUSTOM_SOURCE_CAP after pool filtering.
+    const capped = selected.slice(0, CUSTOM_SOURCE_CAP);
+    if (selected.length > CUSTOM_SOURCE_CAP) {
+      notes.push(
+        `Custom selection truncated to ${CUSTOM_SOURCE_CAP} after availability filter.`,
+      );
+    }
+    notes.push(
+      `Custom mode: ${capped.length} source(s) (cap ${CUSTOM_SOURCE_CAP})`,
+    );
+    return { mode: 'custom', sources: capped, notes };
   }
 
   if (input.mode === 'suggestions') {
@@ -129,8 +141,10 @@ export function selectSources(
       input.usage,
     );
     // Re-apply cap after configured filter.
-    const capped = selected.slice(0, 5);
-    notes.push(`Suggestions mode: ${capped.length} source(s) (cap 5)`);
+    const capped = selected.slice(0, SUGGESTIONS_CAP);
+    notes.push(
+      `Suggestions mode: ${capped.length} source(s) (cap ${SUGGESTIONS_CAP})`,
+    );
     return { mode: 'suggestions', sources: capped, notes };
   }
 

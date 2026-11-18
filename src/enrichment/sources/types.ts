@@ -8,7 +8,7 @@ export type DatasetId = 'weather' | 'solar' | 'water' | 'custom';
  * Source selection mode per dataset:
  * - top3: three most reliable (usage-biased when we have counts; else ranking)
  * - suggestions: our curated most-reliable list (capped at 5)
- * - custom: user-picked sources (no hard cap)
+ * - custom: user-picked sources (also capped at 5)
  */
 export type SourceSelectionMode = 'top3' | 'suggestions' | 'custom';
 
@@ -48,7 +48,7 @@ export interface DatasetDefinition {
 export interface EnrichmentDatasetPrefs {
   datasetId: DatasetId;
   mode: SourceSelectionMode;
-  /** Used when mode === 'custom'; no hard cap. */
+  /** Used when mode === 'custom'; capped at SUGGESTIONS_CAP (5). */
   customSourceIds: SourceId[];
   updatedAt: string;
 }
@@ -60,6 +60,8 @@ export interface SourceUsageRow {
   lastUsedAt: string | null;
 }
 
-/** Caps for curated lists. Custom mode has no hard cap. */
+/** Cap for curated suggestions and custom source lists. */
 export const SUGGESTIONS_CAP = 5;
+/** Alias — custom selection uses the same hard cap as suggestions. */
+export const CUSTOM_SOURCE_CAP = SUGGESTIONS_CAP;
 export const TOP3_COUNT = 3;

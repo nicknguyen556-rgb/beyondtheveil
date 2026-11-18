@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { capCustomSourceIds } from './cap';
 import { getDataset } from './registry';
 import type {
   DatasetId,
@@ -27,10 +28,12 @@ function rowToPrefs(row: Record<string, unknown>): EnrichmentDatasetPrefs {
   } catch {
     custom = [];
   }
+  // Normalize legacy uncapped rows on read.
+  const capped = capCustomSourceIds(custom);
   return {
     datasetId: String(row.dataset_id) as DatasetId,
     mode: parseMode(String(row.mode)),
-    customSourceIds: custom,
+    customSourceIds: capped.sourceIds,
     updatedAt: String(row.updated_at),
   };
 }
@@ -54,15 +57,26 @@ export async function getDatasetPrefs(
   };
 }
 
+export interface SetDatasetPrefsResult {
+  prefs: EnrichmentDatasetPrefs;
+  /** Present when customSourceIds were truncated to the cap. */
+  truncationMessage: string | null;
+}
+
+/**
+ * Persist dataset source prefs. Custom source lists are hard-capped at 5;
+ * extras are truncated and surfaced via `truncationMessage`.
+ */
 export async function setDatasetPrefs(
   db: SQLiteDatabase,
   prefs: Omit<EnrichmentDatasetPrefs, 'updatedAt'> & { updatedAt?: string },
-): Promise<EnrichmentDatasetPrefs> {
+): Promise<SetDatasetPrefsResult> {
+  const capped = capCustomSourceIds(prefs.customSourceIds);
   const updatedAt = prefs.updatedAt ?? nowIso();
   const next: EnrichmentDatasetPrefs = {
     datasetId: prefs.datasetId,
     mode: prefs.mode,
-    customSourceIds: prefs.customSourceIds,
+    customSourceIds: capped.sourceIds,
     updatedAt,
   };
   await db.runAsync(
@@ -79,7 +93,10 @@ export async function setDatasetPrefs(
       next.updatedAt,
     ],
   );
-  return next;
+  return {
+    prefs: next,
+    truncationMessage: capped.message,
+  };
 }
 
 export async function listAllDatasetPrefs(

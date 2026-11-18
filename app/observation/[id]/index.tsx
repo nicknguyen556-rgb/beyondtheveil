@@ -6,6 +6,7 @@ import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { getCurrentDeviceGps } from '@/capture/placeTime';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
+import { SourcePrefsPanel } from '@/components/SourcePrefsPanel';
 import { useDatabase } from '@/db/DatabaseProvider';
 import {
   getObservation,
@@ -272,10 +273,15 @@ export default function ObservationDetailScreen() {
         <Text style={styles.stepLabel}>3 · Enrichment</Text>
         <Text style={styles.body}>
           Multi-source enrichment averages overlapping weather/solar/water fields
-          (top-3 / suggestions / custom per dataset). Std-dev shows when two or
-          more sources agree on a numeric signal; water stays unavailable for
-          free-text when no marine source covers the point.
+          (top-3 / suggestions / custom per dataset; suggestions and custom both
+          max 5 sources). Std-dev shows when two or more sources agree on a
+          numeric signal; water stays unavailable for free-text when no marine
+          source covers the point.
         </Text>
+
+        {db ? (
+          <SourcePrefsPanel db={db} onMessage={(message) => setStatus(message)} />
+        ) : null}
 
         <PrimaryButton
           label={enriching ? 'Enriching…' : 'Fetch weather & solar'}
