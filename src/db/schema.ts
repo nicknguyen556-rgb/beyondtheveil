@@ -3,7 +3,7 @@
  * Premium sync (Supabase) will mirror these tables later — not wired yet.
  */
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA foreign_keys = ON;
@@ -60,6 +60,21 @@ CREATE TABLE IF NOT EXISTS trend_views (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS enrichment_prefs (
+  dataset_id TEXT PRIMARY KEY NOT NULL,
+  mode TEXT NOT NULL CHECK (mode IN ('top3', 'suggestions', 'custom')),
+  custom_source_ids_json TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS source_usage (
+  dataset_id TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  use_count INTEGER NOT NULL DEFAULT 0,
+  last_used_at TEXT,
+  PRIMARY KEY (dataset_id, source_id)
+);
 `;
 
 /** Additive migrations for existing installs created at schema v1. */
@@ -67,5 +82,20 @@ export const MIGRATIONS: Record<number, string[]> = {
   2: [
     `ALTER TABLE observations ADD COLUMN place_source TEXT`,
     `ALTER TABLE observations ADD COLUMN time_source TEXT`,
+  ],
+  3: [
+    `CREATE TABLE IF NOT EXISTS enrichment_prefs (
+      dataset_id TEXT PRIMARY KEY NOT NULL,
+      mode TEXT NOT NULL CHECK (mode IN ('top3', 'suggestions', 'custom')),
+      custom_source_ids_json TEXT NOT NULL DEFAULT '[]',
+      updated_at TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS source_usage (
+      dataset_id TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      use_count INTEGER NOT NULL DEFAULT 0,
+      last_used_at TEXT,
+      PRIMARY KEY (dataset_id, source_id)
+    )`,
   ],
 };

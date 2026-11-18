@@ -6,6 +6,7 @@ import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { getCurrentDeviceGps } from '@/capture/placeTime';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
+import { SourcePrefsPanel } from '@/components/SourcePrefsPanel';
 import { useDatabase } from '@/db/DatabaseProvider';
 import {
   getObservation,
@@ -104,7 +105,13 @@ export default function ObservationDetailScreen() {
       }
     }
     for (const signal of signals) {
-      if (seen.has(signal.key) || signal.key.startsWith('enrichment.')) continue;
+      if (
+        seen.has(signal.key) ||
+        signal.key.startsWith('enrichment.') ||
+        signal.key.endsWith('.std_dev')
+      ) {
+        continue;
+      }
       ordered.push(signal);
     }
     return ordered;
@@ -162,7 +169,7 @@ export default function ObservationDetailScreen() {
   async function runEnrichment() {
     if (!db || !id || enriching) return;
     setEnriching(true);
-    setStatus('Fetching Open-Meteo weather & solar context…');
+    setStatus('Fetching multi-source weather & solar context…');
     try {
       const result = await enrichObservation(db, id);
       setStatus(result.message);
@@ -265,10 +272,16 @@ export default function ObservationDetailScreen() {
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>3 · Enrichment</Text>
         <Text style={styles.body}>
-          Open-Meteo fills weather and solar signals for this place and time. Water
-          temperature is included when marine coverage exists; otherwise marked
-          unavailable for free-text later.
+          Multi-source enrichment averages overlapping weather/solar/water fields
+          (top-3 / suggestions / custom per dataset; suggestions and custom both
+          max 5 sources). Std-dev shows when two or more sources agree on a
+          numeric signal; water stays unavailable for free-text when no marine
+          source covers the point.
         </Text>
+
+        {db ? (
+          <SourcePrefsPanel db={db} onMessage={(message) => setStatus(message)} />
+        ) : null}
 
         <PrimaryButton
           label={enriching ? 'Enriching…' : 'Fetch weather & solar'}
@@ -279,7 +292,7 @@ export default function ObservationDetailScreen() {
         {enriching ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={colors.accent} />
-            <Text style={styles.muted}>Talking to Open-Meteo…</Text>
+            <Text style={styles.muted}>Talking to selected sources…</Text>
           </View>
         ) : null}
 
@@ -306,16 +319,25 @@ export default function ObservationDetailScreen() {
         {displaySignals.length === 0 ? (
           <Text style={styles.muted}>No enrichment signals yet.</Text>
         ) : (
-          displaySignals.map((signal) => (
-            <View key={signal.id} style={styles.signalRow}>
-              <Text style={styles.signalKey}>{catalogLabel(signal.key)}</Text>
-              <Text style={styles.signalValue}>
-                {formatSignalValue(signal)}
-                {' · '}
-                {signal.source}
-              </Text>
-            </View>
-          ))
+          displaySignals.map((signal) => {
+            const std = signalByKey.get(`${signal.key}.std_dev`);
+            return (
+              <View key={signal.id} style={styles.signalRow}>
+                <Text style={styles.signalKey}>{catalogLabel(signal.key)}</Text>
+                <Text style={styles.signalValue}>
+                  {formatSignalValue(signal)}
+                  {std?.value
+                    ? ` · σ ${std.value}${signal.unit ? ` ${signal.unit}` : ''}`
+                    : ''}
+                  {' · '}
+                  {signal.source}
+                  {signal.confidence != null
+                    ? ` · conf ${signal.confidence.toFixed(2)}`
+                    : ''}
+                </Text>
+              </View>
+            );
+          })
         )}
 
         <Text style={styles.catalogHint}>

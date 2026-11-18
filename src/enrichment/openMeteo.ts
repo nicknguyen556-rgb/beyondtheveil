@@ -4,6 +4,7 @@
  * Marine: sea-surface temperature when coverage exists.
  */
 
+import type { WeatherProviderSnapshot } from './types';
 import { wmoWeatherCodeLabel } from './wmo';
 
 const ARCHIVE_URL = 'https://archive-api.open-meteo.com/v1/archive';
@@ -300,5 +301,43 @@ export async function fetchOpenMeteoSnapshot(
     ...mapped,
     waterTempC: water.value,
     waterUnavailableReason: water.reason,
+  };
+}
+
+/** Adapter used by multi-provider merge. */
+export async function fetchOpenMeteoProviderSnapshot(
+  latitude: number,
+  longitude: number,
+  capturedAt: Date,
+  options?: { signal?: AbortSignal },
+): Promise<WeatherProviderSnapshot> {
+  const snapshot = await fetchOpenMeteoSnapshot(
+    latitude,
+    longitude,
+    capturedAt,
+    options,
+  );
+  return {
+    providerId: 'open-meteo',
+    endpointLabel: `open-meteo:${snapshot.weatherEndpoint}`,
+    temperatureC: snapshot.temperatureC,
+    feelsLikeC: snapshot.feelsLikeC,
+    humidityPct: snapshot.humidityPct,
+    dewPointC: snapshot.dewPointC,
+    precipitationMm: snapshot.precipitationMm,
+    pressureHpa: snapshot.pressureHpa,
+    cloudCoverPct: snapshot.cloudCoverPct,
+    visibilityM: snapshot.visibilityM,
+    windSpeedKmh: snapshot.windSpeedKmh,
+    windDirectionDeg: snapshot.windDirectionDeg,
+    windGustsKmh: snapshot.windGustsKmh,
+    uvIndex: snapshot.uvIndex,
+    conditions: snapshot.conditions,
+    sunriseIso: snapshot.sunriseIso,
+    sunsetIso: snapshot.sunsetIso,
+    waterTempC: snapshot.waterTempC,
+    waterUnavailableReason: snapshot.waterUnavailableReason,
+    sampleTimeIso: snapshot.sampleTimeIso,
+    confidence: 0.9,
   };
 }
