@@ -66,6 +66,17 @@ API failures are stored as `enrichment.status=failed` (or `partial` / `skipped`)
 
 Canonical definitions: `src/enrichment/catalog.ts` · docs: project store `docs/enrichment-signals.md`.
 
+## Trends (GD-7)
+
+The **Trends** tab plots multi-series charts from local observations:
+
+- **Signal keys** — catalog trendable keys, keys present in SQLite, free-form keys, and `outcome.rating`
+- **Filters** — date range (UTC day bounds), place radius (Haversine km around a capture), tags (AND)
+- **Std-dev** — optional ±σ band from `{key}.std_dev` companions (multi-source sample spread)
+- **Presets** — built-in packs plus saved `trend_views` rows (filters, keys, chart type, dates)
+
+Charting uses `react-native-svg` for clear line / scatter / bar series. Shared absolute Y when units match; otherwise independent relative scales with a legend note.
+
 ## Project layout
 
 ```
