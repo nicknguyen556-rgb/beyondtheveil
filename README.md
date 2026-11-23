@@ -14,7 +14,7 @@ Photo-anchored field journaling for iOS and Android. Capture pins place and time
 1. **Capture** — camera or gallery import; EXIF GPS/time with device GPS fallback
 2. **Place / time** — confirm on the observation screen; map pin + manual time when needed
 3. **Enrichment** — multi-source weather / solar / water merge stored as local `signals` rows
-4. **Trends** — chart UI reserved; schema includes `trend_views`
+4. **Trends** — multi-series charts, place/tag/date filters, σ bands, saved presets (`trend_views`)
 
 ## Develop
 
@@ -69,12 +69,13 @@ Canonical definitions: `src/enrichment/catalog.ts` · docs: project store `docs/
 ## Project layout
 
 ```
-app/                 # expo-router screens (Capture, Log, detail, map pin)
+app/                 # expo-router screens (Capture, Log, Trends, detail, map pin)
 src/capture/         # Photo pick, EXIF parse, place/time resolve, persist
 src/enrichment/      # Multi-source merge, providers, solar/moon, signal catalog
-src/db/              # SQLite client, schema, observation repo
+src/trends/          # Series builder, place radius, built-in presets
+src/db/              # SQLite client, schema, observation + trend_views repos
 src/types/           # Observation, Signal, TrendView models
-src/components/      # Shared UI shell (source prefs, custom signals panel)
+src/components/      # Shared UI (TrendChart, source prefs, custom signals)
 src/theme/           # Colors
 ```
 
