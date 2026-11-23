@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, TextInput, View } from 'rea
 
 import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { getCurrentDeviceGps } from '@/capture/placeTime';
+import { CustomSignalsPanel } from '@/components/CustomSignalsPanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SourcePrefsPanel } from '@/components/SourcePrefsPanel';
@@ -13,7 +14,11 @@ import {
   listSignalsForObservation,
   updateObservationPlaceTime,
 } from '@/db/observations';
-import { catalogLabel, SIGNAL_CATALOG } from '@/enrichment/catalog';
+import {
+  catalogLabel,
+  isChartableSignalValue,
+  SIGNAL_CATALOG,
+} from '@/enrichment/catalog';
 import { enrichObservation } from '@/enrichment/enrichObservation';
 import { colors } from '@/theme/colors';
 import type { Observation, Signal } from '@/types/models';
@@ -342,8 +347,19 @@ export default function ObservationDetailScreen() {
 
         <Text style={styles.catalogHint}>
           Catalog: {SIGNAL_CATALOG.filter((e) => e.trendable).length} trendable
-          signals documented in README.
+          signals · request more below or enter free-text when APIs miss.
         </Text>
+
+        {db ? (
+          <CustomSignalsPanel
+            db={db}
+            observation={observation}
+            signals={signals}
+            onChanged={reload}
+            onMessage={(message) => setStatus(message)}
+            disabled={enriching}
+          />
+        ) : null}
       </View>
 
       {status ? <Text style={styles.status}>{status}</Text> : null}
@@ -354,7 +370,11 @@ export default function ObservationDetailScreen() {
 function formatSignalValue(signal: Signal): string {
   if (signal.value == null || signal.value === '') return '—';
   if (signal.value === 'unavailable') return 'unavailable (free-text ready)';
-  return `${signal.value}${signal.unit ? ` ${signal.unit}` : ''}`;
+  const base = `${signal.value}${signal.unit ? ` ${signal.unit}` : ''}`;
+  if (signal.source === 'manual' && isChartableSignalValue(signal.value)) {
+    return `${base} · chartable`;
+  }
+  return base;
 }
 
 function toLocalInputValue(iso: string): string {

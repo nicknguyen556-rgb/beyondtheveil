@@ -29,13 +29,15 @@ Then open in Expo Go, iOS simulator, or Android emulator.
 npm run typecheck
 ```
 
-## Enrichment signals (GD-5 / GD-11)
+## Enrichment signals (GD-5 / GD-11 / GD-6)
 
 Multi-source merge: selected providers are fetched in parallel; **numeric fields are averaged** per signal; **std-dev** + per-source **samples** are stored for charts (`{key}.std_dev`, `enrichment.sources` JSON).
 
 **Modes (per dataset):** `top3` (usage-biased reliability, cold-start = ranking), `suggestions` (curated list **cap 5**), `custom` (user picks, **also cap 5** — UI rejects extras; merge/prefs truncate with a clear message). Prefs in `enrichment_prefs`; usage in `source_usage`.
 
-**Providers:** Open-Meteo (keyless forecast/archive + marine), MET Norway (keyless), OpenWeather / WeatherAPI (env keys), NWS (US). User-requested keys use the same pipeline via `resolveUserSignal`; total miss → `unavailable` free-text fallback.
+**Providers:** Open-Meteo (keyless forecast/archive + marine), MET Norway (keyless), OpenWeather / WeatherAPI (env keys), NWS (US).
+
+**Custom signals (GD-6):** Observation detail → **Custom signals** — request any catalog or free-form key (`requestUserSignal` / `resolveUserSignal` uses the same merger + caps). Miss or unknown key → `unavailable` free-text ready; `setFreeTextSignal` stores a typed value with optional **unit** so parseable numbers stay chartable.
 
 | Key | Label | Unit | Trendable | Notes |
 | --- | --- | --- | --- | --- |
@@ -72,7 +74,7 @@ src/capture/         # Photo pick, EXIF parse, place/time resolve, persist
 src/enrichment/      # Multi-source merge, providers, solar/moon, signal catalog
 src/db/              # SQLite client, schema, observation repo
 src/types/           # Observation, Signal, TrendView models
-src/components/      # Shared UI shell
+src/components/      # Shared UI shell (source prefs, custom signals panel)
 src/theme/           # Colors
 ```
 
