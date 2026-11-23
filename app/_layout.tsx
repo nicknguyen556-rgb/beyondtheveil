@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider, useDatabase } from '@/db/DatabaseProvider';
+import { SyncProvider } from '@/sync';
 import { colors } from '@/theme/colors';
 
 function RootNavigator() {
@@ -28,13 +29,13 @@ function RootNavigator() {
   }
 
   return (
-    <>
+    <SyncProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="observation/[id]" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </SyncProvider>
   );
 }
 

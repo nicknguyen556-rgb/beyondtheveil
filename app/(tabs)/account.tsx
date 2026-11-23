@@ -1,0 +1,264 @@
+import { useState } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { Screen } from '@/components/Screen';
+import { useSync } from '@/sync';
+import { colors } from '@/theme/colors';
+import type { Entitlement } from '@/types/models';
+
+function formatTs(iso: string | null): string {
+  if (!iso) return 'Never';
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
+}
+
+export default function AccountScreen() {
+  const {
+    configured,
+    user,
+    entitlement,
+    lastSyncAt,
+    lastSummary,
+    busy,
+    authError,
+    signIn,
+    signUp,
+    signOutUser,
+    setEntitlement,
+    syncNow,
+    formatMergeLine,
+  } = useSync();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [statusLine, setStatusLine] = useState<string | null>(null);
+
+  async function onSignIn() {
+    const ok = await signIn(email, password);
+    setStatusLine(ok ? 'Signed in.' : null);
+  }
+
+  async function onSignUp() {
+    const ok = await signUp(email, password);
+    setStatusLine(ok ? 'Account ready.' : null);
+  }
+
+  async function onSync() {
+    const summary = await syncNow();
+    if (!summary) {
+      setStatusLine('Local store not ready.');
+      return;
+    }
+    if (summary.skippedReason) {
+      setStatusLine(summary.skippedReason);
+      return;
+    }
+    setStatusLine(
+      `Synced · pushed ${summary.pushed}, pulled ${summary.pulled}, kept local ${summary.keptLocal}, identical ${summary.identical}` +
+        (summary.offline ? ' (partial / offline)' : ''),
+    );
+  }
+
+  async function toggleEntitlement() {
+    const next: Entitlement = entitlement === 'premium' ? 'free' : 'premium';
+    await setEntitlement(next);
+    setStatusLine(
+      next === 'premium'
+        ? 'Premium enabled locally — sync unlocked when signed in.'
+        : 'Free plan — local-only; cloud sync disabled.',
+    );
+  }
+
+  return (
+    <Screen
+      title="Account"
+      subtitle="Premium cloud sync via Supabase. Free stays fully usable offline."
+    >
+      <View style={styles.panel}>
+        <Text style={styles.stepLabel}>Backend</Text>
+        <Text style={styles.body}>
+          {configured
+            ? 'Supabase URL/key detected. Auth and sync are available.'
+            : 'Supabase not configured. Copy .env.example → set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY. App stays local-only without secrets.'}
+        </Text>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.stepLabel}>Entitlement</Text>
+        <Text style={styles.body}>
+          Current: {entitlement === 'premium' ? 'Premium' : 'Free (local-only)'}.
+          Free never uploads. Premium enables photo + observation (+ signals) sync.
+        </Text>
+        <PrimaryButton
+          label={
+            entitlement === 'premium'
+              ? 'Switch to free (local-only)'
+              : 'Enable premium (local flag)'
+          }
+          onPress={() => void toggleEntitlement()}
+          disabled={busy}
+        />
+        <Text style={styles.hint}>
+          Local flag until real IAP. Remote `profiles.entitlement` overrides when
+          reachable.
+        </Text>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.stepLabel}>Sign in</Text>
+        {user ? (
+          <>
+            <Text style={styles.body}>Signed in as {user.email ?? user.id}</Text>
+            <PrimaryButton
+              label={busy ? 'Working…' : 'Sign out'}
+              onPress={() => void signOutUser()}
+              disabled={busy}
+            />
+          </>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholder="Email"
+              placeholderTextColor={colors.muted}
+              value={email}
+              onChangeText={setEmail}
+              editable={!busy}
+            />
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              placeholder="Password"
+              placeholderTextColor={colors.muted}
+              value={password}
+              onChangeText={setPassword}
+              editable={!busy}
+            />
+            <PrimaryButton
+              label={busy ? 'Working…' : 'Sign in'}
+              onPress={() => void onSignIn()}
+              disabled={busy || !email || !password}
+            />
+            <Pressable
+              onPress={() => void onSignUp()}
+              disabled={busy || !email || !password}
+              style={styles.linkBtn}
+            >
+              <Text style={styles.linkText}>Create account</Text>
+            </Pressable>
+          </>
+        )}
+        {authError ? <Text style={styles.error}>{authError}</Text> : null}
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.stepLabel}>Sync</Text>
+        <Text style={styles.body}>
+          Last sync: {formatTs(lastSyncAt)}. Conflicts resolve last-write-wins per
+          observation using `updated_at`.
+        </Text>
+        <PrimaryButton
+          label={busy ? 'Syncing…' : 'Sync now'}
+          onPress={() => void onSync()}
+          disabled={busy}
+        />
+        {statusLine ? <Text style={styles.hint}>{statusLine}</Text> : null}
+        {lastSummary && lastSummary.merges.length > 0 ? (
+          <View style={styles.mergeBox}>
+            <Text style={styles.mergeTitle}>Merge decisions</Text>
+            {lastSummary.merges.slice(0, 12).map((m) => (
+              <Text key={m.observationId} style={styles.mergeLine}>
+                {formatMergeLine(m)}
+              </Text>
+            ))}
+            {lastSummary.merges.length > 12 ? (
+              <Text style={styles.hint}>
+                +{lastSummary.merges.length - 12} more
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  panel: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 12,
+  },
+  stepLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.accent,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.ink,
+  },
+  hint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.muted,
+  },
+  error: {
+    fontSize: 14,
+    color: colors.danger,
+  },
+  input: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.ink,
+    backgroundColor: colors.surface,
+  },
+  linkBtn: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  linkText: {
+    color: colors.accent,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  mergeBox: {
+    gap: 4,
+    paddingTop: 4,
+  },
+  mergeTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.ink,
+    marginBottom: 4,
+  },
+  mergeLine: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.muted,
+    fontFamily: 'monospace',
+  },
+});

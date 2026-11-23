@@ -13,6 +13,8 @@ export type TimeSource = 'exif' | 'device' | 'manual';
 export interface Observation {
   id: string;
   photoUri: string | null;
+  /** Supabase Storage path when premium sync has uploaded the photo. */
+  photoStoragePath: string | null;
   latitude: number | null;
   longitude: number | null;
   capturedAt: string;
