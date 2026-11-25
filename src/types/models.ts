@@ -6,6 +6,10 @@ export type Entitlement = 'free' | 'premium';
 
 export type ChartType = 'line' | 'scatter' | 'bar';
 
+export type PlaceSource = 'exif' | 'device' | 'manual';
+
+export type TimeSource = 'exif' | 'device' | 'manual';
+
 export interface Observation {
   id: string;
   photoUri: string | null;
@@ -13,6 +17,8 @@ export interface Observation {
   longitude: number | null;
   capturedAt: string;
   placeLabel: string | null;
+  placeSource: PlaceSource | null;
+  timeSource: TimeSource | null;
   tagsJson: string;
   outcomeRating: number | null;
   outcomeNotes: string | null;
@@ -50,6 +56,8 @@ export interface NewObservationInput {
   longitude?: number | null;
   capturedAt?: string;
   placeLabel?: string | null;
+  placeSource?: PlaceSource | null;
+  timeSource?: TimeSource | null;
   tags?: string[];
   outcomeRating?: number | null;
   outcomeNotes?: string | null;

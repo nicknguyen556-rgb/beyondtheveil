@@ -1,6 +1,13 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { NewObservationInput, NewSignalInput, Observation, Signal } from '@/types/models';
+import type {
+  NewObservationInput,
+  NewSignalInput,
+  Observation,
+  PlaceSource,
+  Signal,
+  TimeSource,
+} from '@/types/models';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -18,6 +25,8 @@ function rowToObservation(row: Record<string, unknown>): Observation {
     longitude: (row.longitude as number | null) ?? null,
     capturedAt: String(row.captured_at),
     placeLabel: (row.place_label as string | null) ?? null,
+    placeSource: (row.place_source as PlaceSource | null) ?? null,
+    timeSource: (row.time_source as TimeSource | null) ?? null,
     tagsJson: String(row.tags_json ?? '[]'),
     outcomeRating: (row.outcome_rating as number | null) ?? null,
     outcomeNotes: (row.outcome_notes as string | null) ?? null,
@@ -72,6 +81,8 @@ export async function createObservation(
     longitude: input.longitude ?? null,
     capturedAt: input.capturedAt ?? ts,
     placeLabel: input.placeLabel ?? null,
+    placeSource: input.placeSource ?? null,
+    timeSource: input.timeSource ?? (input.capturedAt ? 'manual' : 'device'),
     tagsJson: JSON.stringify(input.tags ?? []),
     outcomeRating: input.outcomeRating ?? null,
     outcomeNotes: input.outcomeNotes ?? null,
@@ -83,8 +94,9 @@ export async function createObservation(
   await db.runAsync(
     `INSERT INTO observations (
       id, photo_uri, latitude, longitude, captured_at, place_label,
+      place_source, time_source,
       tags_json, outcome_rating, outcome_notes, created_at, updated_at, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       observation.id,
       observation.photoUri,
@@ -92,6 +104,8 @@ export async function createObservation(
       observation.longitude,
       observation.capturedAt,
       observation.placeLabel,
+      observation.placeSource,
+      observation.timeSource,
       observation.tagsJson,
       observation.outcomeRating,
       observation.outcomeNotes,
@@ -112,6 +126,8 @@ export async function updateObservationPlaceTime(
     longitude?: number | null;
     capturedAt?: string;
     placeLabel?: string | null;
+    placeSource?: PlaceSource | null;
+    timeSource?: TimeSource | null;
   },
 ): Promise<void> {
   const existing = await getObservation(db, id);
@@ -125,6 +141,8 @@ export async function updateObservationPlaceTime(
       longitude = ?,
       captured_at = ?,
       place_label = ?,
+      place_source = ?,
+      time_source = ?,
       updated_at = ?
      WHERE id = ?`,
     [
@@ -132,6 +150,8 @@ export async function updateObservationPlaceTime(
       fields.longitude !== undefined ? fields.longitude : existing.longitude,
       fields.capturedAt ?? existing.capturedAt,
       fields.placeLabel !== undefined ? fields.placeLabel : existing.placeLabel,
+      fields.placeSource !== undefined ? fields.placeSource : existing.placeSource,
+      fields.timeSource !== undefined ? fields.timeSource : existing.timeSource,
       nowIso(),
       id,
     ],

@@ -32,10 +32,7 @@ function RootNavigator() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="observation/[id]"
-          options={{ headerShown: true, title: 'Observation', headerTintColor: colors.accent }}
-        />
+        <Stack.Screen name="observation/[id]" options={{ headerShown: false }} />
       </Stack>
     </>
   );
