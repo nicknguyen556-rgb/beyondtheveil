@@ -52,6 +52,27 @@ export interface TrendView {
   updatedAt: string;
 }
 
+/** Premium AI suggestion kinds — always grounded in stored observations. */
+export type SuggestionKind = 'correlation' | 'interesting_period';
+
+/**
+ * AI pattern suggestion (premium). Linked to real observation IDs and signal keys;
+ * never invents rows. Dismissible via `dismissedAt`.
+ */
+export interface AiSuggestion {
+  id: string;
+  kind: SuggestionKind;
+  title: string;
+  summary: string;
+  signalKeysJson: string;
+  observationIdsJson: string;
+  dateRangeStart: string | null;
+  dateRangeEnd: string | null;
+  evidenceJson: string;
+  dismissedAt: string | null;
+  createdAt: string;
+}
+
 export interface NewObservationInput {
   photoUri?: string | null;
   latitude?: number | null;

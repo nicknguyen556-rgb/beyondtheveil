@@ -1,9 +1,10 @@
 /**
  * Local SQLite schema for offline-first observations.
  * Premium sync mirrors observations + signals to Supabase (see supabase/schema.sql).
+ * Premium AI suggestions stay local (analyze stored data only).
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA foreign_keys = ON;
@@ -76,6 +77,23 @@ CREATE TABLE IF NOT EXISTS source_usage (
   last_used_at TEXT,
   PRIMARY KEY (dataset_id, source_id)
 );
+
+CREATE TABLE IF NOT EXISTS ai_suggestions (
+  id TEXT PRIMARY KEY NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('correlation', 'interesting_period')),
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  signal_keys_json TEXT NOT NULL DEFAULT '[]',
+  observation_ids_json TEXT NOT NULL DEFAULT '[]',
+  date_range_start TEXT,
+  date_range_end TEXT,
+  evidence_json TEXT NOT NULL DEFAULT '{}',
+  dismissed_at TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_dismissed
+  ON ai_suggestions(dismissed_at);
 `;
 
 /** Additive migrations for existing installs created at schema v1. */
@@ -100,4 +118,21 @@ export const MIGRATIONS: Record<number, string[]> = {
     )`,
   ],
   4: [`ALTER TABLE observations ADD COLUMN photo_storage_path TEXT`],
+  5: [
+    `CREATE TABLE IF NOT EXISTS ai_suggestions (
+      id TEXT PRIMARY KEY NOT NULL,
+      kind TEXT NOT NULL CHECK (kind IN ('correlation', 'interesting_period')),
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      signal_keys_json TEXT NOT NULL DEFAULT '[]',
+      observation_ids_json TEXT NOT NULL DEFAULT '[]',
+      date_range_start TEXT,
+      date_range_end TEXT,
+      evidence_json TEXT NOT NULL DEFAULT '{}',
+      dismissed_at TEXT,
+      created_at TEXT NOT NULL
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_ai_suggestions_dismissed
+      ON ai_suggestions(dismissed_at)`,
+  ],
 };
