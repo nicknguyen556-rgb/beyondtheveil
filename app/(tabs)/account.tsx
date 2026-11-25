@@ -74,8 +74,8 @@ export default function AccountScreen() {
     await setEntitlement(next);
     setStatusLine(
       next === 'premium'
-        ? 'Premium enabled locally — sync unlocked when signed in.'
-        : 'Free plan — local-only; cloud sync disabled.',
+        ? 'Premium enabled locally — sync + AI suggestions unlocked.'
+        : 'Free plan — local-only; cloud sync and AI suggestions disabled.',
     );
   }
 
@@ -97,7 +97,8 @@ export default function AccountScreen() {
         <Text style={styles.stepLabel}>Entitlement</Text>
         <Text style={styles.body}>
           Current: {entitlement === 'premium' ? 'Premium' : 'Free (local-only)'}.
-          Free never uploads. Premium enables photo + observation (+ signals) sync.
+          Free never uploads. Premium unlocks cloud sync and AI trend suggestions
+          on the Trends tab.
         </Text>
         <PrimaryButton
           label={
@@ -110,7 +111,7 @@ export default function AccountScreen() {
         />
         <Text style={styles.hint}>
           Local flag until real IAP. Remote `profiles.entitlement` overrides when
-          reachable.
+          reachable. AI suggestions use the same premium gate as sync.
         </Text>
       </View>
 

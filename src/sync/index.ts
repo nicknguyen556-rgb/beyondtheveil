@@ -2,6 +2,7 @@ export { authUnavailableReason, getCurrentUser, getSession, signInWithEmail, sig
 export { getSupabaseConfig, isSupabaseConfigured } from './config';
 export {
   canSync,
+  canUseAiSuggestions,
   getLocalEntitlement,
   resolveEntitlement,
   setLocalEntitlement,

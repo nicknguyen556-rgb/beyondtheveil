@@ -70,3 +70,8 @@ export async function resolveEntitlement(
 export function canSync(entitlement: Entitlement): boolean {
   return entitlement === 'premium';
 }
+
+/** AI trend suggestions share the same premium entitlement as cloud sync. */
+export function canUseAiSuggestions(entitlement: Entitlement): boolean {
+  return entitlement === 'premium';
+}

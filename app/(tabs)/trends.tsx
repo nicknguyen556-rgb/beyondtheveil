@@ -8,11 +8,16 @@ import {
   View,
 } from 'react-native';
 
+import {
+  AiSuggestionsPanel,
+  suggestionQueryPatch,
+} from '@/components/AiSuggestionsPanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { TrendChart } from '@/components/TrendChart';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { listObservations } from '@/db/observations';
+import { listActiveSuggestions } from '@/db/suggestions';
 import {
   createTrendView,
   deleteTrendView,
@@ -28,8 +33,14 @@ import {
   catalogLabel,
   normalizeSignalKey,
 } from '@/enrichment/catalog';
+import { useSync } from '@/sync';
 import { colors } from '@/theme/colors';
-import type { ChartType, Observation, TrendView } from '@/types/models';
+import type {
+  AiSuggestion,
+  ChartType,
+  Observation,
+  TrendView,
+} from '@/types/models';
 import { BUILTIN_TREND_PRESETS, builtinToQuery } from '@/trends/presets';
 import {
   buildTrendSeries,
@@ -53,6 +64,7 @@ const CATALOG_TRENDABLE = SIGNAL_CATALOG.filter((e) => e.trendable).map(
 
 export default function TrendsScreen() {
   const { db } = useDatabase();
+  const { entitlement } = useSync();
   const [observations, setObservations] = useState<Observation[]>([]);
   const [savedViews, setSavedViews] = useState<TrendView[]>([]);
   const [dbKeys, setDbKeys] = useState<string[]>([]);
@@ -62,6 +74,7 @@ export default function TrendsScreen() {
   const [signalsByObs, setSignalsByObs] = useState<
     Awaited<ReturnType<typeof listSignalsForObservations>>
   >([]);
+  const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [presetName, setPresetName] = useState('');
@@ -75,18 +88,21 @@ export default function TrendsScreen() {
   const reload = useCallback(async () => {
     if (!db) return;
     try {
-      const [obs, views, keys, tags, withCoords] = await Promise.all([
-        listObservations(db),
-        listTrendViews(db),
-        listDistinctSignalKeys(db),
-        listDistinctTags(db),
-        listObservationsWithCoords(db),
-      ]);
+      const [obs, views, keys, tags, withCoords, activeSuggestions] =
+        await Promise.all([
+          listObservations(db),
+          listTrendViews(db),
+          listDistinctSignalKeys(db),
+          listDistinctTags(db),
+          listObservationsWithCoords(db),
+          listActiveSuggestions(db),
+        ]);
       setObservations(obs);
       setSavedViews(views);
       setDbKeys(keys);
       setAllTags(tags);
       setPlaced(withCoords);
+      setSuggestions(activeSuggestions);
       const signals = await listSignalsForObservations(
         db,
         obs.map((o) => o.id),
@@ -321,12 +337,34 @@ export default function TrendsScreen() {
     setStatus('Filters cleared');
   }
 
+  function applyAiSuggestion(patch: {
+    signalKeys: string[];
+    dateRangeStart: string | null;
+    dateRangeEnd: string | null;
+  }) {
+    setActivePresetId(null);
+    setQuery((prev) => suggestionQueryPatch(patch, prev));
+    setDateStartDraft(
+      patch.dateRangeStart ? patch.dateRangeStart.slice(0, 10) : '',
+    );
+    setDateEndDraft(patch.dateRangeEnd ? patch.dateRangeEnd.slice(0, 10) : '');
+  }
+
   return (
     <Screen
       title="Trends"
       subtitle="Multi-series graphs over local observations — filter by place, tags, and date."
     >
       {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <AiSuggestionsPanel
+        db={db}
+        entitlement={entitlement}
+        suggestions={suggestions}
+        onSuggestionsChange={setSuggestions}
+        onApply={applyAiSuggestion}
+        onStatus={setStatus}
+      />
 
       <View style={styles.panel}>
         <Text style={styles.heading}>Chart</Text>

@@ -88,6 +88,16 @@ Free stays fully usable offline. Premium unlocks Supabase Auth + observation/pho
 
 Sync is last-write-wins per observation using `updated_at` (merge decisions shown with timestamps). Missing env, free entitlement, or offline network fail gracefully — local SQLite keeps working.
 
+## Premium AI suggestions (GD-9)
+
+Same entitlement as cloud sync. On the **Trends** tab, premium users can **Generate from stored data**:
+
+- On-device analysis of local observations + signals only (never invents rows)
+- **Correlations** — Pearson r between signals and outcome ratings (or signal pairs)
+- **Interesting periods** — high-rating or elevated-signal date windows bounded by real captures
+- Each suggestion lists signal keys, date window, sample size / r, and supporting observation count
+- **Apply to chart** loads those keys + dates; **Dismiss** hides the suggestion (`ai_suggestions.dismissed_at`)
+
 ## Project layout
 
 ```
@@ -95,10 +105,11 @@ app/                 # expo-router screens (Capture, Log, Trends, Account, detai
 src/capture/         # Photo pick, EXIF parse, place/time resolve, persist
 src/enrichment/      # Multi-source merge, providers, solar/moon, signal catalog
 src/trends/          # Series builder, place radius, built-in presets
+src/suggestions/     # Premium AI analyzer (stored data only) + evidence types
 src/sync/            # Supabase client, auth, entitlement gate, LWW sync engine
-src/db/              # SQLite client, schema, observation + trend_views repos
-src/types/           # Observation, Signal, TrendView, Entitlement models
-src/components/      # Shared UI (TrendChart, source prefs, custom signals)
+src/db/              # SQLite client, schema, observation + trend_views + ai_suggestions
+src/types/           # Observation, Signal, TrendView, AiSuggestion, Entitlement
+src/components/      # Shared UI (TrendChart, AI suggestions, source prefs, custom signals)
 src/theme/           # Colors
 supabase/            # SQL schema for Auth/Postgres/Storage (no secrets)
 ```
