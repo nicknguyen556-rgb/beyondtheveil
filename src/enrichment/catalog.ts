@@ -1,10 +1,11 @@
 /**
- * Default enrichment signal catalog (GD-5 / GD-11).
+ * Default enrichment signal catalog (GD-5 / GD-11 / GD-6).
  * Keys are stored on `signals.key`; values are always text in SQLite.
  * Numeric defaults are multi-source averaged; `*.std_dev` companions are optional.
+ * Users may request any key — catalog/providers when known, else free-text (GD-6).
  */
 
-export type SignalAvailability = 'default' | 'when_available' | 'derived';
+export type SignalAvailability = 'default' | 'when_available' | 'derived' | 'custom';
 
 export interface SignalCatalogEntry {
   key: string;
@@ -218,10 +219,63 @@ export const ENRICHMENT_SIGNAL_KEYS: readonly string[] = SIGNAL_CATALOG.map(
   (entry) => entry.key,
 );
 
+/** Catalog keys users can request on-demand (excludes enrichment.* meta). */
+export const REQUESTABLE_SIGNAL_KEYS: readonly string[] = SIGNAL_CATALOG.filter(
+  (entry) => !entry.key.startsWith('enrichment.'),
+).map((entry) => entry.key);
+
+export function catalogEntry(key: string): SignalCatalogEntry | undefined {
+  const normalized = normalizeSignalKey(key);
+  return SIGNAL_CATALOG.find((entry) => entry.key === normalized);
+}
+
 export function catalogLabel(key: string): string {
-  return SIGNAL_CATALOG.find((entry) => entry.key === key)?.label ?? key;
+  const entry = catalogEntry(key);
+  if (entry) return entry.label;
+  const normalized = normalizeSignalKey(key);
+  // Humanize unknown custom keys: "tide.height" → "tide.height"
+  return normalized || key;
 }
 
 export function catalogUnit(key: string): string | null {
-  return SIGNAL_CATALOG.find((entry) => entry.key === key)?.unit ?? null;
+  return catalogEntry(key)?.unit ?? null;
+}
+
+export function isCatalogSignalKey(key: string): boolean {
+  return catalogEntry(key) != null;
+}
+
+/**
+ * Normalize a user-entered signal key:
+ * trim, lowercase, spaces/slashes → dots, collapse repeats, strip edge dots.
+ * Returns empty string when nothing usable remains.
+ */
+export function normalizeSignalKey(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/\\]+/g, '.')
+    .replace(/[^a-z0-9._-]+/g, '')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^\.+|\.+$/g, '');
+}
+
+/**
+ * Parse a free-text signal value into a finite number for charts when possible.
+ * Accepts plain numbers and leading numeric tokens ("12.5 C", "18°").
+ */
+export function parseChartableNumber(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'unavailable') return null;
+  const direct = Number(trimmed);
+  if (Number.isFinite(direct)) return direct;
+  const match = trimmed.match(/^([+-]?\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function isChartableSignalValue(value: string | null | undefined): boolean {
+  return parseChartableNumber(value) != null;
 }
