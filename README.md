@@ -98,6 +98,16 @@ Same entitlement as cloud sync. On the **Trends** tab, premium users can **Gener
 - Each suggestion lists signal keys, date window, sample size / r, and supporting observation count
 - **Apply to chart** loads those keys + dates; **Dismiss** hides the suggestion (`ai_suggestions.dismissed_at`)
 
+## Polish — map, timeline, export (GD-10 / phase 6)
+
+The **Log** tab switches between:
+
+- **List** — classic observation rows
+- **Map** — all captures with coordinates (`react-native-maps`); tap a marker for detail
+- **Timeline** — day-grouped chronological rail
+
+**Data export** (same tab): JSON or CSV of observations + signals via the system share sheet. Optional **strip coordinates** for privacy. Photos are not bundled; the payload only notes whether a local photo exists. `eas.json` is included for EAS development / preview / production builds.
+
 ## Project layout
 
 ```
@@ -107,11 +117,13 @@ src/enrichment/      # Multi-source merge, providers, solar/moon, signal catalog
 src/trends/          # Series builder, place radius, built-in presets
 src/suggestions/     # Premium AI analyzer (stored data only) + evidence types
 src/sync/            # Supabase client, auth, entitlement gate, LWW sync engine
+src/export/          # JSON/CSV export builders + share sheet
 src/db/              # SQLite client, schema, observation + trend_views + ai_suggestions
 src/types/           # Observation, Signal, TrendView, AiSuggestion, Entitlement
-src/components/      # Shared UI (TrendChart, AI suggestions, source prefs, custom signals)
+src/components/      # Shared UI (map/timeline views, TrendChart, AI, source prefs)
 src/theme/           # Colors
 supabase/            # SQL schema for Auth/Postgres/Storage (no secrets)
+eas.json             # EAS Build profiles
 ```
 
 See the product plan in the project store for phases beyond foundation.
