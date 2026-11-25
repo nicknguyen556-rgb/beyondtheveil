@@ -5,8 +5,9 @@ Photo-anchored field journaling for iOS and Android. Capture pins place and time
 ## Stack
 
 - **Expo (React Native) + TypeScript**
-- **expo-router** — Capture → Observations → Trends navigation
+- **expo-router** — Capture → Observations → Trends → Account navigation
 - **expo-sqlite** — offline observation / signal store
+- **Supabase** (optional) — Auth + Postgres + Storage for premium cloud sync
 - **Multi-source enrichment** — Open-Meteo + MET Norway (keyless), optional OpenWeather / WeatherAPI keys, NWS (US); numeric fields averaged with std-dev samples
 
 ## Core loop (foundation)
@@ -77,17 +78,29 @@ The **Trends** tab plots multi-series charts from local observations:
 
 Charting uses `react-native-svg` for clear line / scatter / bar series. Shared absolute Y when units match; otherwise independent relative scales with a legend note.
 
+## Premium cloud sync (GD-8)
+
+Free stays fully usable offline. Premium unlocks Supabase Auth + observation/photo/signal sync across devices.
+
+1. Copy `.env.example` → `.env` and set `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` (never commit real keys).
+2. Apply `supabase/schema.sql` in your Supabase project; create private Storage bucket `observation-photos`.
+3. In the **Account** tab: enable the local premium flag (or set `profiles.entitlement`), sign in, then **Sync now**.
+
+Sync is last-write-wins per observation using `updated_at` (merge decisions shown with timestamps). Missing env, free entitlement, or offline network fail gracefully — local SQLite keeps working.
+
 ## Project layout
 
 ```
-app/                 # expo-router screens (Capture, Log, Trends, detail, map pin)
+app/                 # expo-router screens (Capture, Log, Trends, Account, detail, map pin)
 src/capture/         # Photo pick, EXIF parse, place/time resolve, persist
 src/enrichment/      # Multi-source merge, providers, solar/moon, signal catalog
 src/trends/          # Series builder, place radius, built-in presets
+src/sync/            # Supabase client, auth, entitlement gate, LWW sync engine
 src/db/              # SQLite client, schema, observation + trend_views repos
-src/types/           # Observation, Signal, TrendView models
+src/types/           # Observation, Signal, TrendView, Entitlement models
 src/components/      # Shared UI (TrendChart, source prefs, custom signals)
 src/theme/           # Colors
+supabase/            # SQL schema for Auth/Postgres/Storage (no secrets)
 ```
 
 See the product plan in the project store for phases beyond foundation.

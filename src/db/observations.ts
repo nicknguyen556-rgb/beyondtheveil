@@ -21,6 +21,7 @@ function rowToObservation(row: Record<string, unknown>): Observation {
   return {
     id: String(row.id),
     photoUri: (row.photo_uri as string | null) ?? null,
+    photoStoragePath: (row.photo_storage_path as string | null) ?? null,
     latitude: (row.latitude as number | null) ?? null,
     longitude: (row.longitude as number | null) ?? null,
     capturedAt: String(row.captured_at),
@@ -77,6 +78,7 @@ export async function createObservation(
   const observation: Observation = {
     id,
     photoUri: input.photoUri ?? null,
+    photoStoragePath: null,
     latitude: input.latitude ?? null,
     longitude: input.longitude ?? null,
     capturedAt: input.capturedAt ?? ts,
@@ -93,13 +95,14 @@ export async function createObservation(
 
   await db.runAsync(
     `INSERT INTO observations (
-      id, photo_uri, latitude, longitude, captured_at, place_label,
+      id, photo_uri, photo_storage_path, latitude, longitude, captured_at, place_label,
       place_source, time_source,
       tags_json, outcome_rating, outcome_notes, created_at, updated_at, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       observation.id,
       observation.photoUri,
+      observation.photoStoragePath,
       observation.latitude,
       observation.longitude,
       observation.capturedAt,
@@ -230,4 +233,78 @@ export async function countObservations(db: SQLiteDatabase): Promise<number> {
     `SELECT COUNT(*) AS count FROM observations`,
   );
   return row?.count ?? 0;
+}
+
+/**
+ * Insert or replace a full observation row from cloud sync (preserves remote timestamps).
+ */
+export async function upsertObservationFromSync(
+  db: SQLiteDatabase,
+  observation: Observation,
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO observations (
+      id, photo_uri, photo_storage_path, latitude, longitude, captured_at, place_label,
+      place_source, time_source,
+      tags_json, outcome_rating, outcome_notes, created_at, updated_at, synced_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      photo_uri = excluded.photo_uri,
+      photo_storage_path = excluded.photo_storage_path,
+      latitude = excluded.latitude,
+      longitude = excluded.longitude,
+      captured_at = excluded.captured_at,
+      place_label = excluded.place_label,
+      place_source = excluded.place_source,
+      time_source = excluded.time_source,
+      tags_json = excluded.tags_json,
+      outcome_rating = excluded.outcome_rating,
+      outcome_notes = excluded.outcome_notes,
+      created_at = excluded.created_at,
+      updated_at = excluded.updated_at,
+      synced_at = excluded.synced_at`,
+    [
+      observation.id,
+      observation.photoUri,
+      observation.photoStoragePath,
+      observation.latitude,
+      observation.longitude,
+      observation.capturedAt,
+      observation.placeLabel,
+      observation.placeSource,
+      observation.timeSource,
+      observation.tagsJson,
+      observation.outcomeRating,
+      observation.outcomeNotes,
+      observation.createdAt,
+      observation.updatedAt,
+      observation.syncedAt,
+    ],
+  );
+}
+
+/** Replace every signal for an observation (used when remote wins LWW). */
+export async function replaceAllSignalsForObservation(
+  db: SQLiteDatabase,
+  observationId: string,
+  signals: Signal[],
+): Promise<void> {
+  await db.runAsync(`DELETE FROM signals WHERE observation_id = ?`, [observationId]);
+  for (const signal of signals) {
+    await db.runAsync(
+      `INSERT INTO signals (
+        id, observation_id, key, source, value, unit, confidence, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        signal.id,
+        signal.observationId,
+        signal.key,
+        signal.source,
+        signal.value,
+        signal.unit,
+        signal.confidence,
+        signal.createdAt,
+      ],
+    );
+  }
 }

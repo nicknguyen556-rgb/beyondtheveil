@@ -36,6 +36,13 @@ export default function TabsLayout() {
           tabBarLabel: 'Trends',
         }}
       />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Account',
+          tabBarLabel: 'Account',
+        }}
+      />
     </Tabs>
   );
 }

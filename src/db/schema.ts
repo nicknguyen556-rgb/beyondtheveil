@@ -1,9 +1,9 @@
 /**
  * Local SQLite schema for offline-first observations.
- * Premium sync (Supabase) will mirror these tables later — not wired yet.
+ * Premium sync mirrors observations + signals to Supabase (see supabase/schema.sql).
  */
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA foreign_keys = ON;
@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS meta (
 CREATE TABLE IF NOT EXISTS observations (
   id TEXT PRIMARY KEY NOT NULL,
   photo_uri TEXT,
+  photo_storage_path TEXT,
   latitude REAL,
   longitude REAL,
   captured_at TEXT NOT NULL,
@@ -98,4 +99,5 @@ export const MIGRATIONS: Record<number, string[]> = {
       PRIMARY KEY (dataset_id, source_id)
     )`,
   ],
+  4: [`ALTER TABLE observations ADD COLUMN photo_storage_path TEXT`],
 };

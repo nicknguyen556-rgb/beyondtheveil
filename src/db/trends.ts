@@ -229,6 +229,7 @@ export async function listObservationsWithCoords(
   return rows.map((row) => ({
     id: String(row.id),
     photoUri: (row.photo_uri as string | null) ?? null,
+    photoStoragePath: (row.photo_storage_path as string | null) ?? null,
     latitude: (row.latitude as number | null) ?? null,
     longitude: (row.longitude as number | null) ?? null,
     capturedAt: String(row.captured_at),
