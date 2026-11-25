@@ -203,6 +203,28 @@ export async function addSignal(
   return signal;
 }
 
+/** Remove existing rows for the given keys, then insert replacements (enrichment refresh). */
+export async function replaceSignalsForKeys(
+  db: SQLiteDatabase,
+  observationId: string,
+  keys: readonly string[],
+  next: NewSignalInput[],
+): Promise<Signal[]> {
+  if (keys.length > 0) {
+    const placeholders = keys.map(() => '?').join(', ');
+    await db.runAsync(
+      `DELETE FROM signals WHERE observation_id = ? AND key IN (${placeholders})`,
+      [observationId, ...keys],
+    );
+  }
+
+  const saved: Signal[] = [];
+  for (const input of next) {
+    saved.push(await addSignal(db, input));
+  }
+  return saved;
+}
+
 export async function countObservations(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) AS count FROM observations`,
