@@ -1,6 +1,7 @@
 /**
- * Default enrichment signal catalog (GD-5).
+ * Default enrichment signal catalog (GD-5 / GD-11).
  * Keys are stored on `signals.key`; values are always text in SQLite.
+ * Numeric defaults are multi-source averaged; `*.std_dev` companions are optional.
  */
 
 export type SignalAvailability = 'default' | 'when_available' | 'derived';
@@ -14,7 +15,7 @@ export interface SignalCatalogEntry {
   trendable: boolean;
 }
 
-/** Canonical keys used by Open-Meteo + solar enrichment. */
+/** Canonical keys used by multi-source weather / solar / water enrichment. */
 export const SIGNAL_CATALOG: readonly SignalCatalogEntry[] = [
   {
     key: 'solar.time_of_day',
@@ -166,7 +167,7 @@ export const SIGNAL_CATALOG: readonly SignalCatalogEntry[] = [
     unit: '°C',
     availability: 'when_available',
     description:
-      'Sea-surface temperature from Open-Meteo Marine when the location has coverage; otherwise unavailable (free-text ready).',
+      'Averaged sea-surface temperature when any selected marine-capable source has coverage; otherwise unavailable (free-text ready).',
     trendable: true,
   },
   {
@@ -174,7 +175,17 @@ export const SIGNAL_CATALOG: readonly SignalCatalogEntry[] = [
     label: 'Provider',
     unit: null,
     availability: 'derived',
-    description: 'Data source label (open-meteo).',
+    description:
+      'Joined endpoint labels for sources that succeeded (e.g. open-meteo:forecast+met-no:locationforecast).',
+    trendable: false,
+  },
+  {
+    key: 'enrichment.sources',
+    label: 'Source metadata',
+    unit: null,
+    availability: 'derived',
+    description:
+      'JSON provenance: selection notes, per-field average/stdDev, and chart-ready per-source samples.',
     trendable: false,
   },
   {
