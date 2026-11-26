@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { radius, space } from '@/theme/spacing';
+import { typography } from '@/theme/typography';
 
 interface OnboardingHintProps {
   label?: string;
@@ -26,22 +28,21 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'flex-start',
     backgroundColor: colors.accentSoft,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 12,
+    borderColor: colors.horizon,
+    paddingVertical: space.sm,
     paddingHorizontal: 14,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    ...typography.section,
+    fontSize: 11,
     color: colors.accent,
     paddingTop: 2,
   },
   body: {
     flex: 1,
+    ...typography.caption,
     fontSize: 14,
     lineHeight: 20,
     color: colors.ink,

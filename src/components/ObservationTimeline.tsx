@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   entry: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,

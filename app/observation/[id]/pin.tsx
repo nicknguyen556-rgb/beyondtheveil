@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     gap: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   title: {
     fontSize: 18,

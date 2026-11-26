@@ -88,7 +88,7 @@ export default function AccountScreen() {
   return (
     <Screen
       title="Account"
-      subtitle="Free journaling stays on-device. Premium adds optional cloud sync and AI trend hints."
+      subtitle="Free stays on-device. Premium unlocks optional cloud sync and AI trend hints."
     >
       <OnboardingHint label="Privacy">
         Capture, enrich, and chart without an account. Nothing leaves this phone on the
@@ -244,7 +244,7 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,

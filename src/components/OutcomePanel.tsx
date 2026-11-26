@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 8,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   smallBtnText: {
-    color: colors.white,
+    color: colors.onAccent,
     fontWeight: '600',
     fontSize: 14,
   },

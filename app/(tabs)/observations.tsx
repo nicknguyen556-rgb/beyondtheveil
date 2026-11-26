@@ -80,8 +80,8 @@ export default function ObservationsScreen() {
 
   return (
     <Screen
-      title="Log"
-      subtitle="Your local field journal as a list, map, or day timeline — export anytime."
+      title="Field log"
+      subtitle="List, map, or day timeline — your local journal, export anytime."
     >
       {isEmpty ? (
         <EmptyState
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   modeChipActive: {
     backgroundColor: colors.accent,
@@ -226,10 +226,10 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   modeChipTextActive: {
-    color: colors.white,
+    color: colors.onAccent,
   },
   row: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: colors.accent,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   checkboxOn: {
     backgroundColor: colors.accent,
