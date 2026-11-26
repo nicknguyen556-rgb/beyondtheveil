@@ -156,7 +156,9 @@ export default function ObservationDetailScreen() {
     setStatus('Reading device GPS…');
     const gps = await getCurrentDeviceGps();
     if (!gps) {
-      setStatus('Location permission denied or unavailable.');
+      setStatus(
+        'Location access is off or unavailable. Enable it in Settings to use GPS, or set a map pin manually.',
+      );
       return;
     }
     setLatitude(String(gps.latitude));

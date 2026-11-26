@@ -1,12 +1,14 @@
-/** Field-journal palette — moss / trail map, not generic purple. */
+/** Field-journal palette — moss, trail map, dawn mist. Avoid generic purple AI looks. */
 export const colors = {
-  background: '#F4F7F2',
-  surface: '#E8EEE4',
+  background: '#Eef3EA',
+  surface: '#E2EAD9',
   ink: '#142018',
-  muted: '#5A6B5E',
-  accent: '#2F6B4F',
-  accentSoft: '#C8DCCF',
-  border: '#C5D0C4',
+  muted: '#556856',
+  accent: '#2A5F45',
+  accentSoft: '#C5D8C4',
+  border: '#BCC9B8',
   danger: '#8B3A2F',
-  white: '#FFFFFF',
+  white: '#FBFDFA',
+  trail: '#6B5344',
+  dawn: '#D9E4D0',
 } as const;

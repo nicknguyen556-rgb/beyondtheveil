@@ -1,5 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 
+import { permissionCopy } from '@/theme/permissions';
+
 export type PhotoPickSource = 'camera' | 'gallery';
 
 export class PhotoPermissionError extends Error {
@@ -14,7 +16,7 @@ async function ensureCameraPermission(): Promise<void> {
   if (current.granted) return;
   const asked = await ImagePicker.requestCameraPermissionsAsync();
   if (!asked.granted) {
-    throw new PhotoPermissionError('Camera permission is required to capture a photo.');
+    throw new PhotoPermissionError(permissionCopy.cameraDenied);
   }
 }
 
@@ -23,7 +25,7 @@ async function ensureLibraryPermission(): Promise<void> {
   if (current.granted) return;
   const asked = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!asked.granted) {
-    throw new PhotoPermissionError('Photo library permission is required to import a photo.');
+    throw new PhotoPermissionError(permissionCopy.libraryDenied);
   }
 }
 

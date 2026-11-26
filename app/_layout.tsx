@@ -14,7 +14,7 @@ function RootNavigator() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>Opening local observation store…</Text>
+        <Text style={styles.muted}>Opening your field journal…</Text>
       </View>
     );
   }

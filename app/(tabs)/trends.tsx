@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
   Pressable,
@@ -12,6 +12,8 @@ import {
   AiSuggestionsPanel,
   suggestionQueryPatch,
 } from '@/components/AiSuggestionsPanel';
+import { EmptyState } from '@/components/EmptyState';
+import { OnboardingHint } from '@/components/OnboardingHint';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { TrendChart } from '@/components/TrendChart';
@@ -63,6 +65,7 @@ const CATALOG_TRENDABLE = SIGNAL_CATALOG.filter((e) => e.trendable).map(
 );
 
 export default function TrendsScreen() {
+  const router = useRouter();
   const { db } = useDatabase();
   const { entitlement } = useSync();
   const [observations, setObservations] = useState<Observation[]>([]);
@@ -350,21 +353,40 @@ export default function TrendsScreen() {
     setDateEndDraft(patch.dateRangeEnd ? patch.dateRangeEnd.slice(0, 10) : '');
   }
 
+  const isEmpty = observations.length === 0;
+
   return (
     <Screen
       title="Trends"
-      subtitle="Multi-series graphs over local observations — filter by place, tags, and date."
+      subtitle="Reliable graphs from your journal — filter by place, tags, and date."
     >
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <AiSuggestionsPanel
-        db={db}
-        entitlement={entitlement}
-        suggestions={suggestions}
-        onSuggestionsChange={setSuggestions}
-        onApply={applyAiSuggestion}
-        onStatus={setStatus}
-      />
+      {isEmpty ? (
+        <EmptyState
+          eyebrow="Needs data"
+          title="Trends wake up after a few captures"
+          body="Log photos with place and enrichment first. Then pick signal keys (weather, solar, ratings) to plot honest patterns over time."
+          actionLabel="Go to Capture"
+          onAction={() => router.push('/')}
+        />
+      ) : (
+        <OnboardingHint label="How to read">
+          Select signal keys below, optionally filter by place or tags, then watch the
+          chart. Presets are shortcuts — correctness over novelty.
+        </OnboardingHint>
+      )}
+
+      {!isEmpty ? (
+        <AiSuggestionsPanel
+          db={db}
+          entitlement={entitlement}
+          suggestions={suggestions}
+          onSuggestionsChange={setSuggestions}
+          onApply={applyAiSuggestion}
+          onStatus={setStatus}
+        />
+      ) : null}
 
       <View style={styles.panel}>
         <Text style={styles.heading}>Chart</Text>
@@ -377,6 +399,11 @@ export default function TrendsScreen() {
           result={chartResult}
           chartType={query.chartType}
           showStdDev={query.filters.showStdDev}
+          emptyHint={
+            isEmpty
+              ? 'Capture and enrich observations to fill this chart.'
+              : undefined
+          }
         />
         <View style={styles.chipRow}>
           {CHART_TYPES.map((type) => (

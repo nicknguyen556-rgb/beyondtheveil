@@ -22,6 +22,8 @@ interface TrendChartProps {
   chartType: ChartType;
   showStdDev: boolean;
   height?: number;
+  /** Override empty-state copy (e.g. first-run with no observations). */
+  emptyHint?: string;
 }
 
 function niceDomain(min: number, max: number): [number, number] {
@@ -113,6 +115,7 @@ export function TrendChart({
   chartType,
   showStdDev,
   height = 240,
+  emptyHint,
 }: TrendChartProps) {
   const { width: windowWidth } = useWindowDimensions();
   const width = Math.max(280, Math.min(windowWidth - 40, 520));
@@ -149,7 +152,8 @@ export function TrendChart({
     return (
       <View style={[styles.empty, { height }]}>
         <Text style={styles.emptyText}>
-          No chartable points for the selected signals in this filter window.
+          {emptyHint ??
+            'No chartable points for the selected signals in this filter window. Enrich observations or widen filters.'}
         </Text>
       </View>
     );

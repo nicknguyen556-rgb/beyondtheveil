@@ -13,6 +13,10 @@ export default function TabsLayout() {
           backgroundColor: colors.white,
           borderTopColor: colors.border,
         },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
       }}
     >
       <Tabs.Screen
