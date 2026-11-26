@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, TextInput, View } from 'rea
 import { formatCoords, formatSourceLabel } from '@/capture/format';
 import { getCurrentDeviceGps } from '@/capture/placeTime';
 import { CustomSignalsPanel } from '@/components/CustomSignalsPanel';
+import { OutcomePanel } from '@/components/OutcomePanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SourcePrefsPanel } from '@/components/SourcePrefsPanel';
@@ -205,7 +206,7 @@ export default function ObservationDetailScreen() {
   return (
     <Screen
       title={observation.placeLabel ?? 'Observation'}
-      subtitle="Photo saved. Confirm place and time, then pull weather for that moment."
+      subtitle="Confirm place and time, enrich, then log a light outcome for trends."
     >
       {observation.photoUri ? (
         <Image source={{ uri: observation.photoUri }} style={styles.hero} />
@@ -357,6 +358,18 @@ export default function ObservationDetailScreen() {
             db={db}
             observation={observation}
             signals={signals}
+            onChanged={reload}
+            onMessage={(message) => setStatus(message)}
+            disabled={enriching}
+          />
+        ) : null}
+      </View>
+
+      <View style={styles.panel}>
+        {db ? (
+          <OutcomePanel
+            db={db}
+            observation={observation}
             onChanged={reload}
             onMessage={(message) => setStatus(message)}
             disabled={enriching}

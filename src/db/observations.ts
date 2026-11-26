@@ -85,9 +85,9 @@ export async function createObservation(
     placeLabel: input.placeLabel ?? null,
     placeSource: input.placeSource ?? null,
     timeSource: input.timeSource ?? (input.capturedAt ? 'manual' : 'device'),
-    tagsJson: JSON.stringify(input.tags ?? []),
-    outcomeRating: input.outcomeRating ?? null,
-    outcomeNotes: input.outcomeNotes ?? null,
+    tagsJson: JSON.stringify(normalizeTags(input.tags ?? [])),
+    outcomeRating: normalizeOutcomeRating(input.outcomeRating ?? null),
+    outcomeNotes: input.outcomeNotes?.trim() || null,
     createdAt: ts,
     updatedAt: ts,
     syncedAt: null,
@@ -158,6 +158,83 @@ export async function updateObservationPlaceTime(
       nowIso(),
       id,
     ],
+  );
+}
+
+/** Normalize tags: trim, lowercase, dedupe, drop empties. */
+export function normalizeTags(tags: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of tags) {
+    const tag = raw.trim().toLowerCase();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+  }
+  return out;
+}
+
+export function parseObservationTags(tagsJson: string): string[] {
+  try {
+    const parsed = JSON.parse(tagsJson) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return normalizeTags(
+      parsed.filter((t): t is string => typeof t === 'string'),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Clamp light outcome rating to 1–5, or null when cleared. */
+export function normalizeOutcomeRating(
+  rating: number | null | undefined,
+): number | null {
+  if (rating == null || !Number.isFinite(rating)) return null;
+  const rounded = Math.round(rating);
+  if (rounded < 1 || rounded > 5) return null;
+  return rounded;
+}
+
+/**
+ * Light outcome logging: rating (1–5), free-text notes, and tags for trend filters.
+ * Bumps `updated_at` so premium sync LWW picks up the change.
+ */
+export async function updateObservationOutcome(
+  db: SQLiteDatabase,
+  id: string,
+  fields: {
+    outcomeRating?: number | null;
+    outcomeNotes?: string | null;
+    tags?: string[];
+  },
+): Promise<void> {
+  const existing = await getObservation(db, id);
+  if (!existing) {
+    throw new Error(`Observation not found: ${id}`);
+  }
+
+  const nextRating =
+    fields.outcomeRating !== undefined
+      ? normalizeOutcomeRating(fields.outcomeRating)
+      : existing.outcomeRating;
+  const nextNotes =
+    fields.outcomeNotes !== undefined
+      ? fields.outcomeNotes?.trim() || null
+      : existing.outcomeNotes;
+  const nextTagsJson =
+    fields.tags !== undefined
+      ? JSON.stringify(normalizeTags(fields.tags))
+      : existing.tagsJson;
+
+  await db.runAsync(
+    `UPDATE observations SET
+      tags_json = ?,
+      outcome_rating = ?,
+      outcome_notes = ?,
+      updated_at = ?
+     WHERE id = ?`,
+    [nextTagsJson, nextRating, nextNotes, nowIso(), id],
   );
 }
 

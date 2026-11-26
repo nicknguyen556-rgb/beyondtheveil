@@ -63,7 +63,8 @@ export default function CaptureScreen() {
     >
       <OnboardingHint label="Start here">
         Take or import one photo. We read place and time from the image when we can;
-        otherwise device GPS or a map pin. Enrichment and trends unlock after that.
+        otherwise device GPS or a map pin. On the observation, rate the outcome and
+        tag it so trends can correlate conditions with what worked.
       </OnboardingHint>
 
       <View style={styles.panel}>
@@ -100,7 +101,8 @@ export default function CaptureScreen() {
           { step: 'Photo', detail: 'Capture or import' },
           { step: 'Place / time', detail: 'EXIF → GPS → map pin' },
           { step: 'Enrichment', detail: 'Weather & solar context' },
-          { step: 'Trends', detail: 'Graphs from your log' },
+          { step: 'Outcome', detail: 'Rating, notes, tags' },
+          { step: 'Trends', detail: 'Graphs vs outcomes' },
         ].map((item, index) => (
           <View
             key={item.step}

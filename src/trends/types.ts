@@ -10,12 +10,15 @@ export interface PlaceRadiusFilter {
 /**
  * Persisted in `trend_views.filters_json`.
  * Tags use AND semantics (observation must include every listed tag).
+ * `minRating` keeps only observations with outcome_rating ≥ that value (1–5).
  */
 export interface TrendFilters {
   tags: string[];
   place: PlaceRadiusFilter | null;
   /** Plot ±σ bands from `{signalKey}.std_dev` companions when present. */
   showStdDev: boolean;
+  /** Inclusive floor on light outcome rating; null = no rating filter. */
+  minRating: number | null;
 }
 
 /** In-memory editor state for the Trends tab (maps 1:1 to a saved preset). */
@@ -58,7 +61,7 @@ export interface TrendBuildResult {
 export const OUTCOME_RATING_KEY = 'outcome.rating';
 
 export function emptyFilters(): TrendFilters {
-  return { tags: [], place: null, showStdDev: false };
+  return { tags: [], place: null, showStdDev: false, minRating: null };
 }
 
 export function defaultTrendQuery(): TrendQuery {
@@ -97,10 +100,20 @@ export function parseTrendFilters(raw: string | null | undefined): TrendFilters 
         radiusKm: parsed.place.radiusKm,
       };
     }
+    let minRating: number | null = null;
+    if (
+      typeof parsed.minRating === 'number' &&
+      Number.isFinite(parsed.minRating) &&
+      parsed.minRating >= 1 &&
+      parsed.minRating <= 5
+    ) {
+      minRating = Math.round(parsed.minRating);
+    }
     return {
       tags,
       place,
       showStdDev: Boolean(parsed.showStdDev),
+      minRating,
     };
   } catch {
     return base;
@@ -112,5 +125,6 @@ export function serializeTrendFilters(filters: TrendFilters): string {
     tags: filters.tags,
     place: filters.place,
     showStdDev: filters.showStdDev,
+    minRating: filters.minRating,
   });
 }

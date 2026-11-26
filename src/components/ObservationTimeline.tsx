@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatCoords } from '@/capture/format';
 import { EmptyState } from '@/components/EmptyState';
+import { parseObservationTags } from '@/db/observations';
 import { colors } from '@/theme/colors';
 import type { Observation } from '@/types/models';
 
@@ -33,6 +34,17 @@ function dayLabel(key: string): string {
     month: 'short',
     day: 'numeric',
   });
+}
+
+function TimelineOutcomeLine({ observation }: { observation: Observation }) {
+  const tags = parseObservationTags(observation.tagsJson);
+  if (observation.outcomeRating == null && tags.length === 0) return null;
+  const parts: string[] = [];
+  if (observation.outcomeRating != null) {
+    parts.push(`Outcome ${observation.outcomeRating}/5`);
+  }
+  if (tags.length > 0) parts.push(tags.join(', '));
+  return <Text style={styles.entryRating}>{parts.join(' · ')}</Text>;
 }
 
 /** Chronological timeline grouped by calendar day (newest first). */
@@ -112,11 +124,7 @@ export function ObservationTimeline({
                     {' · '}
                     {formatCoords(item.latitude, item.longitude)}
                   </Text>
-                  {item.outcomeRating != null ? (
-                    <Text style={styles.entryRating}>
-                      Outcome {item.outcomeRating}/5
-                    </Text>
-                  ) : null}
+                  <TimelineOutcomeLine observation={item} />
                 </View>
               </Pressable>
             ))}

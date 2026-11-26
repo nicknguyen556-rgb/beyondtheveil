@@ -35,7 +35,8 @@ create table if not exists public.observations (
   place_source text check (place_source is null or place_source in ('exif', 'device', 'manual')),
   time_source text check (time_source is null or time_source in ('exif', 'device', 'manual')),
   tags_json text not null default '[]',
-  outcome_rating integer,
+  -- Light outcome logging (1–5 rating); mirrored from local SQLite for premium sync.
+  outcome_rating integer check (outcome_rating is null or (outcome_rating >= 1 and outcome_rating <= 5)),
   outcome_notes text,
   created_at timestamptz not null,
   updated_at timestamptz not null
