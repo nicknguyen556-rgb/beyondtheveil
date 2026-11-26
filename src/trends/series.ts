@@ -44,6 +44,16 @@ function observationPassesFilters(
     }
   }
 
+  if (filters.minRating != null) {
+    if (
+      observation.outcomeRating == null ||
+      !Number.isFinite(observation.outcomeRating) ||
+      observation.outcomeRating < filters.minRating
+    ) {
+      return false;
+    }
+  }
+
   if (filters.place) {
     if (observation.latitude == null || observation.longitude == null) return false;
     if (

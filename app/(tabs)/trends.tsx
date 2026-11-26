@@ -358,7 +358,7 @@ export default function TrendsScreen() {
   return (
     <Screen
       title="Trends"
-      subtitle="Reliable graphs from your journal — filter by place, tags, and date."
+      subtitle="Reliable graphs from your journal — filter by place, tags, outcome rating, and date."
     >
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -594,8 +594,43 @@ export default function TrendsScreen() {
             <Text style={styles.smallBtnText}>Add</Text>
           </Pressable>
         </View>
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.heading}>Outcome rating</Text>
+        <Text style={styles.body}>
+          Keep observations rated at least this high (1–5). Plot Outcome rating as
+          a series above to correlate against weather signals.
+        </Text>
+        <View style={styles.chipRow}>
+          {[1, 2, 3, 4, 5].map((value) => (
+            <Chip
+              key={value}
+              label={`≥ ${value}`}
+              selected={query.filters.minRating === value}
+              onPress={() => {
+                setActivePresetId(null);
+                setQuery((prev) => ({
+                  ...prev,
+                  filters: {
+                    ...prev.filters,
+                    minRating:
+                      prev.filters.minRating === value ? null : value,
+                  },
+                }));
+              }}
+            />
+          ))}
+        </View>
+        {query.filters.minRating != null ? (
+          <Text style={styles.meta}>
+            Active: rating ≥ {query.filters.minRating}
+          </Text>
+        ) : (
+          <Text style={styles.meta}>No rating floor (all outcomes).</Text>
+        )}
         <Pressable onPress={resetFilters}>
-          <Text style={styles.link}>Clear place, tags, and dates</Text>
+          <Text style={styles.link}>Clear place, tags, rating, and dates</Text>
         </Pressable>
       </View>
 

@@ -65,6 +65,7 @@ export function builtinToQuery(preset: BuiltinTrendPreset): TrendQuery {
         ? { ...preset.filters.place }
         : null,
       showStdDev: preset.filters.showStdDev,
+      minRating: preset.filters.minRating,
     },
   };
 }
