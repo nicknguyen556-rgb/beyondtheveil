@@ -58,6 +58,31 @@ export interface SyncSummary {
   offline: boolean;
   skippedReason: string | null;
   merges: ObservationMergeResult[];
+  /** Distinct observations still waiting in the local offline queue after this run. */
+  pendingCount: number;
+}
+
+/**
+ * Simple Account-facing sync status. Free / unconfigured stay `local_only`.
+ * Premium surfaces pending queue + offline / syncing states.
+ */
+export type SyncStatusKind =
+  | 'local_only'
+  | 'signed_out'
+  | 'idle'
+  | 'pending'
+  | 'syncing'
+  | 'offline'
+  | 'error';
+
+export interface SyncStatus {
+  kind: SyncStatusKind;
+  /** Human-readable one-liner for Account. */
+  message: string;
+  pendingCount: number;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  offline: boolean;
 }
 
 export const PHOTO_BUCKET = 'observation-photos';

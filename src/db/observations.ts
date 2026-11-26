@@ -9,6 +9,8 @@ import type {
   TimeSource,
 } from '@/types/models';
 
+import { enqueueSyncChange } from './syncQueue';
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -118,6 +120,12 @@ export async function createObservation(
     ],
   );
 
+  // Local create is pending for premium push (free never flushes the queue).
+  await enqueueSyncChange(db, observation.id, 'observation');
+  if (observation.photoUri) {
+    await enqueueSyncChange(db, observation.id, 'photo');
+  }
+
   return observation;
 }
 
@@ -159,6 +167,8 @@ export async function updateObservationPlaceTime(
       id,
     ],
   );
+
+  await enqueueSyncChange(db, id, 'observation');
 }
 
 /** Normalize tags: trim, lowercase, dedupe, drop empties. */
@@ -236,6 +246,8 @@ export async function updateObservationOutcome(
      WHERE id = ?`,
     [nextTagsJson, nextRating, nextNotes, nowIso(), id],
   );
+
+  await enqueueSyncChange(db, id, 'observation');
 }
 
 export async function listSignalsForObservation(
@@ -280,6 +292,8 @@ export async function addSignal(
     ],
   );
 
+  await enqueueSyncChange(db, signal.observationId, 'signals');
+
   return signal;
 }
 
@@ -301,6 +315,9 @@ export async function replaceSignalsForKeys(
   const saved: Signal[] = [];
   for (const input of next) {
     saved.push(await addSignal(db, input));
+  }
+  if (keys.length > 0 || next.length > 0) {
+    await enqueueSyncChange(db, observationId, 'signals');
   }
   return saved;
 }

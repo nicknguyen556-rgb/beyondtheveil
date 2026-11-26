@@ -31,6 +31,7 @@ export default function AccountScreen() {
     entitlement,
     lastSyncAt,
     lastSummary,
+    syncStatus,
     busy,
     authError,
     signIn,
@@ -67,6 +68,9 @@ export default function AccountScreen() {
     }
     setStatusLine(
       `Synced · pushed ${summary.pushed}, pulled ${summary.pulled}, kept local ${summary.keptLocal}, identical ${summary.identical}` +
+        (summary.pendingCount > 0
+          ? ` · ${summary.pendingCount} still queued`
+          : '') +
         (summary.offline ? ' (partial / offline)' : ''),
     );
   }
@@ -191,16 +195,33 @@ export default function AccountScreen() {
 
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>Sync</Text>
-        <Text style={styles.body}>
-          Last sync: {formatTs(lastSyncAt)}. Conflicts resolve last-write-wins per
-          observation using updated_at.
+        <Text style={styles.body}>{syncStatus.message}</Text>
+        <Text style={styles.hint}>
+          Last sync: {formatTs(lastSyncAt)}
+          {syncStatus.pendingCount > 0
+            ? ` · ${syncStatus.pendingCount} observation${
+                syncStatus.pendingCount === 1 ? '' : 's'
+              } queued`
+            : ''}
+          . Retries on reconnect and when the app comes to the foreground. Free
+          stays local-only. Conflicts use last-write-wins per observation
+          (updated_at).
         </Text>
         <PrimaryButton
-          label={busy ? 'Syncing…' : 'Sync now'}
+          label={
+            busy
+              ? 'Syncing…'
+              : syncStatus.pendingCount > 0
+                ? `Sync now (${syncStatus.pendingCount} queued)`
+                : 'Sync now'
+          }
           onPress={() => void onSync()}
-          disabled={busy || !configured}
+          disabled={busy || !configured || entitlement !== 'premium'}
         />
         {statusLine ? <Text style={styles.hint}>{statusLine}</Text> : null}
+        {syncStatus.lastError && syncStatus.kind !== 'local_only' ? (
+          <Text style={styles.error}>{syncStatus.lastError}</Text>
+        ) : null}
         {lastSummary && lastSummary.merges.length > 0 ? (
           <View style={styles.mergeBox}>
             <Text style={styles.mergeTitle}>Merge decisions</Text>

@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { createObservation } from '@/db/observations';
+import { enqueueSyncChange } from '@/db/syncQueue';
 import type { Observation, PlaceSource, TimeSource } from '@/types/models';
 
 import { resolvePlaceTime } from './placeTime';
@@ -73,6 +74,7 @@ export async function ingestPhotoAsset(
       `UPDATE observations SET photo_uri = ?, updated_at = ? WHERE id = ?`,
       [photoUri, new Date().toISOString(), draft.id],
     );
+    await enqueueSyncChange(db, draft.id, 'photo');
   } catch {
     // Keep the picker URI if durable copy fails (still usable in-session).
   }

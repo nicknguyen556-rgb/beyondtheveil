@@ -10,5 +10,12 @@ export {
 export { decideObservationWinner, shouldPull, shouldPush } from './merge';
 export { formatMergeLine, getLastSyncAt, runCloudSync } from './engine';
 export { SyncProvider, useSync } from './SyncProvider';
+export { buildSyncStatus } from './status';
 export { getSupabase, resetSupabaseClient } from './supabase';
-export type { MergeDecision, ObservationMergeResult, SyncSummary } from './types';
+export type {
+  MergeDecision,
+  ObservationMergeResult,
+  SyncStatus,
+  SyncStatusKind,
+  SyncSummary,
+} from './types';
