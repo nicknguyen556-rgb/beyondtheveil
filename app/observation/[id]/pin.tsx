@@ -84,7 +84,9 @@ export default function MapPinScreen() {
   async function centerOnDevice() {
     const gps = await getCurrentDeviceGps();
     if (!gps) {
-      setStatus('Location permission denied or unavailable.');
+      setStatus(
+        'Location access is off or unavailable. Enable it in Settings, or drag the pin by hand.',
+      );
       return;
     }
     setCoordinate(gps);

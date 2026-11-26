@@ -3,11 +3,13 @@ import { useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatCoords } from '@/capture/format';
+import { EmptyState } from '@/components/EmptyState';
 import { colors } from '@/theme/colors';
 import type { Observation } from '@/types/models';
 
 interface ObservationTimelineProps {
   observations: Observation[];
+  onCapturePress?: () => void;
 }
 
 type DayGroup = {
@@ -34,7 +36,10 @@ function dayLabel(key: string): string {
 }
 
 /** Chronological timeline grouped by calendar day (newest first). */
-export function ObservationTimeline({ observations }: ObservationTimelineProps) {
+export function ObservationTimeline({
+  observations,
+  onCapturePress,
+}: ObservationTimelineProps) {
   const router = useRouter();
   const groups = useMemo<DayGroup[]>(() => {
     const sorted = [...observations].sort(
@@ -57,13 +62,13 @@ export function ObservationTimeline({ observations }: ObservationTimelineProps) 
 
   if (observations.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>Timeline is empty</Text>
-        <Text style={styles.emptyBody}>
-          Captures appear here in day order once you add observations from the
-          Capture tab. First-run setup: docs/LOCAL_SETUP.md.
-        </Text>
-      </View>
+      <EmptyState
+        eyebrow="Timeline"
+        title="No days logged yet"
+        body="After you capture, entries group by calendar day so trips read like a field notebook."
+        actionLabel={onCapturePress ? 'Go to Capture' : undefined}
+        onAction={onCapturePress}
+      />
     );
   }
 
@@ -200,21 +205,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.accent,
     fontWeight: '600',
-  },
-  empty: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.muted,
   },
 });

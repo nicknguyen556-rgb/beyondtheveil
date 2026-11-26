@@ -17,9 +17,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.beyondtheveil.geocatch",
       "infoPlist": {
-        "NSCameraUsageDescription": "Geocatch needs the camera to capture field photos.",
-        "NSPhotoLibraryUsageDescription": "Geocatch needs your library to import field photos.",
-        "NSLocationWhenInUseUsageDescription": "Geocatch uses your location when a photo has no EXIF GPS, and for map pins."
+        "NSCameraUsageDescription": "Geocatch uses the camera so you can photograph the spot you’re logging in the field.",
+        "NSPhotoLibraryUsageDescription": "Geocatch imports photos from your library so existing field shots can become observations.",
+        "NSLocationWhenInUseUsageDescription": "Geocatch uses location only when a photo has no GPS, and to center map pins. Free-plan data stays on your device."
       }
     },
     "android": {
@@ -48,14 +48,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Geocatch to import field photos.",
-          "cameraPermission": "Allow Geocatch to capture field photos."
+          "photosPermission": "Allow Geocatch to import field photos into your journal.",
+          "cameraPermission": "Allow Geocatch to photograph the spot you’re logging."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Geocatch to use your location when EXIF GPS is missing or for map pins."
+          "locationWhenInUsePermission": "Allow Geocatch to place observations when a photo has no GPS, and to center map pins. Free-plan data stays on device."
         }
       ],
       "expo-sharing"

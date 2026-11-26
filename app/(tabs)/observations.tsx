@@ -3,8 +3,10 @@ import { useCallback, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatCoords, formatSourceLabel } from '@/capture/format';
+import { EmptyState } from '@/components/EmptyState';
 import { ObservationMapView } from '@/components/ObservationMapView';
 import { ObservationTimeline } from '@/components/ObservationTimeline';
+import { OnboardingHint } from '@/components/OnboardingHint';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { useDatabase } from '@/db/DatabaseProvider';
@@ -74,11 +76,39 @@ export default function ObservationsScreen() {
     );
   }
 
+  const isEmpty = items.length === 0;
+
   return (
     <Screen
-      title="Observations"
-      subtitle="Browse the local log as a list, map, or day timeline — and export your data."
+      title="Log"
+      subtitle="Your local field journal as a list, map, or day timeline — export anytime."
     >
+      {isEmpty ? (
+        <EmptyState
+          eyebrow={mode === 'map' ? 'Map' : mode === 'timeline' ? 'Timeline' : 'Empty log'}
+          title={
+            mode === 'map'
+              ? 'Nothing on the map yet'
+              : mode === 'timeline'
+                ? 'No days logged yet'
+                : 'No observations yet'
+          }
+          body={
+            mode === 'map'
+              ? 'Capture a field photo first. Spots with GPS or a manual pin show up here.'
+              : mode === 'timeline'
+                ? 'After you capture, entries group by calendar day like a field notebook.'
+                : 'Capture a photo to start the journal. Place and time attach automatically when possible; you can always pin a spot later.'
+          }
+          actionLabel="Go to Capture"
+          onAction={() => router.push('/')}
+        />
+      ) : (
+        <OnboardingHint label="Browse">
+          Switch List, Map, or Timeline. Tap any row to enrich weather, tags, and outcome.
+        </OnboardingHint>
+      )}
+
       <View style={styles.modeRow}>
         {MODES.map((m) => {
           const active = mode === m.id;
@@ -98,17 +128,8 @@ export default function ObservationsScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {mode === 'list' ? (
-        items.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No observations yet</Text>
-            <Text style={styles.emptyBody}>
-              Use Capture to take or import a photo — EXIF place/time (or GPS) land on each
-              row. Weather keys and cloud sync are optional; see docs/LOCAL_SETUP.md.
-            </Text>
-          </View>
-        ) : (
-          items.map((item) => (
+      {!isEmpty && mode === 'list'
+        ? items.map((item) => (
             <Pressable
               key={item.id}
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -136,38 +157,48 @@ export default function ObservationsScreen() {
               </View>
             </Pressable>
           ))
-        )
+        : null}
+
+      {!isEmpty && mode === 'map' ? (
+        <ObservationMapView
+          observations={items}
+          onCapturePress={() => router.push('/')}
+        />
+      ) : null}
+      {!isEmpty && mode === 'timeline' ? (
+        <ObservationTimeline
+          observations={items}
+          onCapturePress={() => router.push('/')}
+        />
       ) : null}
 
-      {mode === 'map' ? <ObservationMapView observations={items} /> : null}
-      {mode === 'timeline' ? <ObservationTimeline observations={items} /> : null}
-
-      <View style={styles.exportPanel}>
-        <Text style={styles.exportTitle}>Data export</Text>
-        <Text style={styles.exportBody}>
-          You own your data. Export observations and signals as JSON or CSV. Photos stay on
-          device (export notes whether a local photo exists). Optionally strip coordinates for
-          privacy.
-        </Text>
-        <Pressable
-          onPress={() => setStripCoordinates((v) => !v)}
-          style={styles.toggleRow}
-        >
-          <View style={[styles.checkbox, stripCoordinates && styles.checkboxOn]} />
-          <Text style={styles.toggleLabel}>Strip latitude / longitude from export</Text>
-        </Pressable>
-        <PrimaryButton
-          label={exportBusy ? 'Exporting…' : 'Export JSON'}
-          onPress={() => onExport('json')}
-          disabled={!db || exportBusy || items.length === 0}
-        />
-        <PrimaryButton
-          label={exportBusy ? 'Exporting…' : 'Export CSV'}
-          onPress={() => onExport('csv')}
-          disabled={!db || exportBusy || items.length === 0}
-        />
-        {exportStatus ? <Text style={styles.exportStatus}>{exportStatus}</Text> : null}
-      </View>
+      {!isEmpty ? (
+        <View style={styles.exportPanel}>
+          <Text style={styles.exportTitle}>Data export</Text>
+          <Text style={styles.exportBody}>
+            You own your data. Export observations and signals as JSON or CSV. Photos stay on
+            device. Optionally strip coordinates for privacy.
+          </Text>
+          <Pressable
+            onPress={() => setStripCoordinates((v) => !v)}
+            style={styles.toggleRow}
+          >
+            <View style={[styles.checkbox, stripCoordinates && styles.checkboxOn]} />
+            <Text style={styles.toggleLabel}>Strip latitude / longitude from export</Text>
+          </Pressable>
+          <PrimaryButton
+            label={exportBusy ? 'Exporting…' : 'Export JSON'}
+            onPress={() => onExport('json')}
+            disabled={!db || exportBusy || items.length === 0}
+          />
+          <PrimaryButton
+            label={exportBusy ? 'Exporting…' : 'Export CSV'}
+            onPress={() => onExport('csv')}
+            disabled={!db || exportBusy || items.length === 0}
+          />
+          {exportStatus ? <Text style={styles.exportStatus}>{exportStatus}</Text> : null}
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -196,22 +227,6 @@ const styles = StyleSheet.create({
   },
   modeChipTextActive: {
     color: colors.white,
-  },
-  empty: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.muted,
   },
   row: {
     backgroundColor: colors.white,

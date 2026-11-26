@@ -40,22 +40,24 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+    backgroundColor: colors.dawn,
   },
   brand: {
-    fontSize: 13,
-    letterSpacing: 1.4,
+    fontSize: 12,
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
     color: colors.accent,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: colors.ink,
+    letterSpacing: -0.3,
   },
   subtitle: {
     marginTop: 6,

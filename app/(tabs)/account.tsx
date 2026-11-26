@@ -7,6 +7,8 @@ import {
   View,
 } from 'react-native';
 
+import { EmptyState } from '@/components/EmptyState';
+import { OnboardingHint } from '@/components/OnboardingHint';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { useSync } from '@/sync';
@@ -82,23 +84,39 @@ export default function AccountScreen() {
   return (
     <Screen
       title="Account"
-      subtitle="Premium cloud sync via Supabase. Free stays fully usable offline."
+      subtitle="Free journaling stays on-device. Premium adds optional cloud sync and AI trend hints."
     >
+      <OnboardingHint label="Privacy">
+        Capture, enrich, and chart without an account. Nothing leaves this phone on the
+        free plan.
+      </OnboardingHint>
+
+      {!configured ? (
+        <EmptyState
+          eyebrow="Local-only"
+          title="Cloud sync is optional"
+          body="You can journal fully offline. To enable premium sync later, add Supabase URL and anon key in .env (see docs/LOCAL_SETUP.md) and restart Metro."
+        />
+      ) : null}
+
       <View style={styles.panel}>
-        <Text style={styles.stepLabel}>Backend</Text>
+        <Text style={styles.stepLabel}>Status</Text>
         <Text style={styles.body}>
           {configured
-            ? 'Supabase URL/key detected. Auth and sync are available.'
-            : 'Supabase not configured. Copy .env.example → .env, set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY, then restart Metro. Step-by-step: docs/LOCAL_SETUP.md. App stays local-only without secrets.'}
+            ? 'Supabase is configured — sign in below when you want sync.'
+            : 'Running local-only. Capture and Trends work without this tab.'}
+        </Text>
+        <Text style={styles.hint}>
+          Plan: {entitlement === 'premium' ? 'Premium' : 'Free (local-only)'}
+          {user ? ` · signed in as ${user.email ?? user.id}` : ' · not signed in'}
         </Text>
       </View>
 
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>Entitlement</Text>
         <Text style={styles.body}>
-          Current: {entitlement === 'premium' ? 'Premium' : 'Free (local-only)'}.
-          Free never uploads. Premium unlocks cloud sync and AI trend suggestions
-          on the Trends tab.
+          Free never uploads. Premium unlocks cloud sync and AI suggestions on Trends
+          (same gate for both).
         </Text>
         <PrimaryButton
           label={
@@ -110,14 +128,17 @@ export default function AccountScreen() {
           disabled={busy}
         />
         <Text style={styles.hint}>
-          Local flag until real IAP. Remote `profiles.entitlement` overrides when
-          reachable. AI suggestions use the same premium gate as sync.
+          Local flag until real IAP. Remote profiles.entitlement overrides when reachable.
         </Text>
       </View>
 
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>Sign in</Text>
-        {user ? (
+        {!configured ? (
+          <Text style={styles.body}>
+            Sign-in appears once Supabase keys are set. Until then, keep capturing locally.
+          </Text>
+        ) : user ? (
           <>
             <Text style={styles.body}>Signed in as {user.email ?? user.id}</Text>
             <PrimaryButton
@@ -128,6 +149,9 @@ export default function AccountScreen() {
           </>
         ) : (
           <>
+            <Text style={styles.body}>
+              Optional — only needed for premium cloud sync across devices.
+            </Text>
             <TextInput
               style={styles.input}
               autoCapitalize="none"
@@ -169,12 +193,12 @@ export default function AccountScreen() {
         <Text style={styles.stepLabel}>Sync</Text>
         <Text style={styles.body}>
           Last sync: {formatTs(lastSyncAt)}. Conflicts resolve last-write-wins per
-          observation using `updated_at`.
+          observation using updated_at.
         </Text>
         <PrimaryButton
           label={busy ? 'Syncing…' : 'Sync now'}
           onPress={() => void onSync()}
-          disabled={busy}
+          disabled={busy || !configured}
         />
         {statusLine ? <Text style={styles.hint}>{statusLine}</Text> : null}
         {lastSummary && lastSummary.merges.length > 0 ? (
@@ -200,7 +224,7 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   panel: {
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: 16,

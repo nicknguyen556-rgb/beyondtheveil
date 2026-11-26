@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Callout, Marker, type Region } from 'react-native-maps';
 
+import { EmptyState } from '@/components/EmptyState';
 import { colors } from '@/theme/colors';
 import type { Observation } from '@/types/models';
 
@@ -15,6 +16,7 @@ const FALLBACK_REGION: Region = {
 
 interface ObservationMapViewProps {
   observations: Observation[];
+  onCapturePress?: () => void;
 }
 
 function regionForPins(pins: Observation[]): Region {
@@ -43,7 +45,10 @@ function regionForPins(pins: Observation[]): Region {
 }
 
 /** Full-log map of observations that have coordinates. */
-export function ObservationMapView({ observations }: ObservationMapViewProps) {
+export function ObservationMapView({
+  observations,
+  onCapturePress,
+}: ObservationMapViewProps) {
   const router = useRouter();
   const pins = useMemo(
     () =>
@@ -55,14 +60,19 @@ export function ObservationMapView({ observations }: ObservationMapViewProps) {
   const region = useMemo(() => regionForPins(pins), [pins]);
 
   if (pins.length === 0) {
+    const noObservations = observations.length === 0;
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No mapped spots yet</Text>
-        <Text style={styles.emptyBody}>
-          Observations need latitude and longitude (EXIF, GPS, or a map pin) to
-          appear here. Start on Capture; setup notes in docs/LOCAL_SETUP.md.
-        </Text>
-      </View>
+      <EmptyState
+        eyebrow="Map"
+        title={noObservations ? 'Nothing on the map yet' : 'No pinned spots yet'}
+        body={
+          noObservations
+            ? 'Capture a field photo first. Spots with GPS or a manual pin show up here.'
+            : 'These observations are missing coordinates. Open one and set a map pin, or use device GPS.'
+        }
+        actionLabel={noObservations && onCapturePress ? 'Go to Capture' : undefined}
+        onAction={noObservations ? onCapturePress : undefined}
+      />
     );
   }
 
@@ -173,21 +183,5 @@ const styles = StyleSheet.create({
   shortcutText: {
     fontSize: 13,
     color: colors.ink,
-  },
-  empty: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  emptyBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.muted,
   },
 });
