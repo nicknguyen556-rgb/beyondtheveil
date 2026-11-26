@@ -13,6 +13,7 @@ function RootNavigator() {
   if (status === 'loading') {
     return (
       <View style={styles.centered}>
+        <Text style={styles.brandBoot}>Beyond the Veil</Text>
         <ActivityIndicator color={colors.accent} size="large" />
         <Text style={styles.muted}>Opening your field journal…</Text>
       </View>
@@ -30,7 +31,7 @@ function RootNavigator() {
 
   return (
     <SyncProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="observation/[id]" options={{ headerShown: false }} />
@@ -68,5 +69,11 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 18,
     fontWeight: '700',
+  },
+  brandBoot: {
+    color: colors.ink,
+    fontSize: 22,
+    fontFamily: 'Georgia',
+    marginBottom: 4,
   },
 });

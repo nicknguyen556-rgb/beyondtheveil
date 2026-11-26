@@ -10,9 +10,12 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { colors } from '@/theme/colors';
+import { radius, space } from '@/theme/spacing';
+import { typography } from '@/theme/typography';
 
 /**
  * Capture stage: camera or gallery → EXIF place/time (with GPS/manual fallbacks) → SQLite.
+ * Brand-forward entry — one composition, not a dashboard.
  */
 export default function CaptureScreen() {
   const router = useRouter();
@@ -58,20 +61,19 @@ export default function CaptureScreen() {
 
   return (
     <Screen
-      title="Capture"
-      subtitle="Photograph a moment, pin place & time, then enrich — your first entry starts the journal."
+      brandHero
+      title="Pin a moment"
+      subtitle="Photograph a place. We read time and location, then weave weather and solar context into your field journal."
     >
       <OnboardingHint label="Start here">
-        Take or import one photo. We read place and time from the image when we can;
-        otherwise device GPS or a map pin. On the observation, rate the outcome and
-        tag it so trends can correlate conditions with what worked.
+        Take or import one photo. Place and time come from the image when we can;
+        otherwise device GPS or a map pin. Rate the outcome later so trends stay honest.
       </OnboardingHint>
 
       <View style={styles.panel}>
-        <Text style={styles.stepLabel}>1 · Photo</Text>
+        <Text style={styles.stepLabel}>Field capture</Text>
         <Text style={styles.body}>
           Camera for a fresh shot, or gallery for something already on your phone.
-          Place and time stick to the observation so weather and charts stay honest.
         </Text>
         <PrimaryButton
           label={busy ? 'Working…' : 'Take photo'}
@@ -82,6 +84,7 @@ export default function CaptureScreen() {
           label={busy ? 'Working…' : 'Import from gallery'}
           onPress={() => ingest('gallery')}
           disabled={!db || busy}
+          variant="ghost"
         />
         {message ? (
           <Text style={[styles.hint, permissionDenied && styles.hintWarn]}>
@@ -96,7 +99,7 @@ export default function CaptureScreen() {
       </View>
 
       <View style={styles.pipeline}>
-        <Text style={styles.pipelineHeading}>What happens next</Text>
+        <Text style={styles.pipelineHeading}>The thread</Text>
         {[
           { step: 'Photo', detail: 'Capture or import' },
           { step: 'Place / time', detail: 'EXIF → GPS → map pin' },
@@ -130,29 +133,24 @@ export default function CaptureScreen() {
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: colors.white,
-    borderRadius: 14,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 12,
+    padding: space.md,
+    gap: space.sm,
   },
   stepLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    ...typography.section,
     color: colors.accent,
   },
   body: {
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.body,
     color: colors.ink,
   },
   hint: {
-    fontSize: 13,
+    ...typography.caption,
     color: colors.muted,
-    lineHeight: 18,
   },
   hintWarn: {
     color: colors.danger,
@@ -163,30 +161,27 @@ const styles = StyleSheet.create({
     color: colors.trail,
   },
   pipeline: {
-    gap: 8,
+    gap: space.xs,
   },
   pipelineHeading: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    ...typography.section,
     color: colors.trail,
     marginBottom: 2,
   },
   pipelineStep: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.sm,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingHorizontal: space.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   pipelineActive: {
     backgroundColor: colors.accentSoft,
-    borderColor: colors.accent,
+    borderColor: colors.horizon,
   },
   pipelineIndex: {
     width: 28,
@@ -202,7 +197,7 @@ const styles = StyleSheet.create({
   },
   pipelineIndexActive: {
     backgroundColor: colors.accent,
-    color: colors.white,
+    color: colors.onAccent,
   },
   pipelineCopy: {
     flex: 1,

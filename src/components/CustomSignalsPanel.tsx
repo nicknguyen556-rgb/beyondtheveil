@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 8,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   fallbackRow: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,

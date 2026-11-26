@@ -2,18 +2,11 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polygon, Text as SvgText } from 'react-native-svg';
 
-import { colors } from '@/theme/colors';
+import { chartSeries, colors } from '@/theme/colors';
 import type { ChartType } from '@/types/models';
 import type { TrendBuildResult, TrendSeries } from '@/trends/types';
 
-const SERIES_COLORS = [
-  '#2F6B4F',
-  '#8B5A2B',
-  '#3A5F8A',
-  '#8B3A2F',
-  '#5A4A7A',
-  '#2F6B6B',
-] as const;
+const SERIES_COLORS = chartSeries;
 
 const PAD = { top: 16, right: 12, bottom: 36, left: 44 };
 
@@ -348,6 +341,8 @@ const styles = StyleSheet.create({
   empty: {
     backgroundColor: colors.surface,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,

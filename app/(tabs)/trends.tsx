@@ -358,7 +358,7 @@ export default function TrendsScreen() {
   return (
     <Screen
       title="Trends"
-      subtitle="Reliable graphs from your journal — filter by place, tags, outcome rating, and date."
+      subtitle="Honest graphs from place, weather, and outcomes — filter until the pattern holds."
     >
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -707,7 +707,7 @@ function Chip({
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   smallBtnText: {
-    color: colors.white,
+    color: colors.onAccent,
     fontWeight: '600',
     fontSize: 14,
   },

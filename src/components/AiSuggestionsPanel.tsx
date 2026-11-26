@@ -216,7 +216,7 @@ export function suggestionQueryPatch(
 
 const styles = StyleSheet.create({
   panel: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   applyText: {
-    color: colors.white,
+    color: colors.onAccent,
     fontWeight: '600',
     fontSize: 13,
   },

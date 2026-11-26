@@ -7,6 +7,9 @@ export default function ObservationLayout() {
     <Stack
       screenOptions={{
         headerTintColor: colors.accent,
+        headerStyle: { backgroundColor: colors.dawn },
+        headerTitleStyle: { color: colors.ink, fontWeight: '600' },
+        headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
     >

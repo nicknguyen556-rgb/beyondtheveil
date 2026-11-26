@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 8,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   signalRow: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 10,
     gap: 2,

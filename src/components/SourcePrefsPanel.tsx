@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   chip: {
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sourceRow: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,

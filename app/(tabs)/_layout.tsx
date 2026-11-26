@@ -10,12 +10,16 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: colors.white,
+          backgroundColor: colors.dawn,
           borderTopColor: colors.border,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          letterSpacing: 0.3,
+        },
+        sceneStyle: {
+          backgroundColor: colors.background,
         },
       }}
     >

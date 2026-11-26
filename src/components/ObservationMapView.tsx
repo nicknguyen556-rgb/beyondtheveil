@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   shortcut: {
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
