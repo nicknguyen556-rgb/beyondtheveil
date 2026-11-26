@@ -7,6 +7,14 @@ import {
   replaceAllSignalsForObservation,
   upsertObservationFromSync,
 } from '@/db/observations';
+import {
+  backfillDirtyIntoQueue,
+  clearQueueForObservation,
+  countPendingObservations,
+  recordQueueFailure,
+  recordQueueFailureAll,
+  setSyncOfflineFlag,
+} from '@/db/syncQueue';
 import type { Observation, Signal } from '@/types/models';
 
 import { getCurrentUser } from './auth';
@@ -44,6 +52,7 @@ function emptySummary(partial: Partial<SyncSummary> & { skippedReason: string | 
     photosDownloaded: 0,
     offline: false,
     merges: [],
+    pendingCount: 0,
     ...partial,
   };
 }
@@ -187,6 +196,7 @@ async function pushObservationBundle(
   }
 
   await markSynced(db, obs.id);
+  await clearQueueForObservation(db, obs.id);
 }
 
 async function pullObservationBundle(
@@ -247,15 +257,19 @@ async function pullObservationBundle(
 /**
  * Bidirectional premium sync: LWW per observation by `updated_at`.
  * Free entitlement, missing auth, or unconfigured Supabase → no-op with reason.
- * Network failures set `offline` and return without throwing.
+ * Network failures leave the local offline queue intact and set `offline`.
  */
 export async function runCloudSync(db: SQLiteDatabase): Promise<SyncSummary> {
   const startedAt = nowIso();
+  await backfillDirtyIntoQueue(db);
+  const pendingBefore = await countPendingObservations(db);
+
   const supabase = getSupabase();
   if (!supabase) {
     return emptySummary({
       startedAt,
       finishedAt: nowIso(),
+      pendingCount: pendingBefore,
       skippedReason:
         'Supabase not configured — local-only mode. Add EXPO_PUBLIC_SUPABASE_URL / ANON_KEY to enable premium sync.',
     });
@@ -266,6 +280,7 @@ export async function runCloudSync(db: SQLiteDatabase): Promise<SyncSummary> {
     return emptySummary({
       startedAt,
       finishedAt: nowIso(),
+      pendingCount: pendingBefore,
       skippedReason: 'Sign in to sync across devices.',
     });
   }
@@ -275,6 +290,7 @@ export async function runCloudSync(db: SQLiteDatabase): Promise<SyncSummary> {
     return emptySummary({
       startedAt,
       finishedAt: nowIso(),
+      pendingCount: pendingBefore,
       skippedReason:
         'Free plan stays local-only. Upgrade to premium to enable cloud sync.',
     });
@@ -292,6 +308,7 @@ export async function runCloudSync(db: SQLiteDatabase): Promise<SyncSummary> {
     offline: false,
     skippedReason: null,
     merges: [],
+    pendingCount: pendingBefore,
   };
 
   let remoteRows: RemoteObservation[] = [];
@@ -303,11 +320,15 @@ export async function runCloudSync(db: SQLiteDatabase): Promise<SyncSummary> {
     if (error) throw new Error(error.message);
     remoteRows = (data as RemoteObservation[] | null) ?? [];
   } catch (err) {
-    summary.offline = true;
-    summary.skippedReason =
+    const message =
       err instanceof Error
         ? `Offline or unreachable: ${err.message}`
         : 'Offline or unreachable';
+    summary.offline = true;
+    summary.skippedReason = message;
+    await recordQueueFailureAll(db, message);
+    await setSyncOfflineFlag(db, true, message);
+    summary.pendingCount = await countPendingObservations(db);
     summary.finishedAt = nowIso();
     return summary;
   }
@@ -330,31 +351,47 @@ export async function runCloudSync(db: SQLiteDatabase): Promise<SyncSummary> {
 
       if (merge.decision === 'identical') {
         summary.identical += 1;
+        // Already in sync — drop any stale queue rows for this id.
+        await clearQueueForObservation(db, id);
         continue;
       }
 
       if (shouldPush(merge.decision) && local) {
-        await pushObservationBundle(supabase, db, user.id, local, summary);
-        if (merge.decision === 'keep_local') summary.keptLocal += 1;
-        else summary.pushed += 1;
+        try {
+          await pushObservationBundle(supabase, db, user.id, local, summary);
+          if (merge.decision === 'keep_local') summary.keptLocal += 1;
+          else summary.pushed += 1;
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : 'Push failed';
+          await recordQueueFailure(db, id, message);
+          throw err;
+        }
         continue;
       }
 
       if (shouldPull(merge.decision) && remote) {
         await pullObservationBundle(supabase, db, remote, local, summary);
+        // Remote won — local queue entries for this id are obsolete.
+        await clearQueueForObservation(db, id);
         summary.pulled += 1;
       }
     }
 
     await setLastSyncAt(db, nowIso());
+    await setSyncOfflineFlag(db, false, null);
   } catch (err) {
-    summary.offline = true;
-    summary.skippedReason =
+    const message =
       err instanceof Error
         ? `Sync interrupted: ${err.message}`
         : 'Sync interrupted';
+    summary.offline = true;
+    summary.skippedReason = message;
+    await recordQueueFailureAll(db, message);
+    await setSyncOfflineFlag(db, true, message);
   }
 
+  summary.pendingCount = await countPendingObservations(db);
   summary.finishedAt = nowIso();
   return summary;
 }

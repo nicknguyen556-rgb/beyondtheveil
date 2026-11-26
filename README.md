@@ -91,6 +91,8 @@ Free stays fully usable offline. Premium unlocks Supabase Auth + observation/pho
 
 Sync is last-write-wins per observation using `updated_at` (merge decisions shown with timestamps). Missing env, free entitlement, or offline network fail gracefully — local SQLite keeps working.
 
+**Offline queue (GD-16):** Observation, signal, and photo edits enqueue locally when cloud sync can’t run. Premium + signed-in retries automatically on network reconnect and app foreground; Account shows a simple status (local-only / queued / offline / up to date). Free never uploads.
+
 ## Premium AI suggestions (GD-9)
 
 Same entitlement as cloud sync. On the **Trends** tab, premium users can **Generate from stored data**:

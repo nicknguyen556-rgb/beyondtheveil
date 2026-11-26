@@ -2,9 +2,10 @@
  * Local SQLite schema for offline-first observations.
  * Premium sync mirrors observations + signals to Supabase (see supabase/schema.sql).
  * Premium AI suggestions stay local (analyze stored data only).
+ * Offline premium sync queue holds pending observation/signal/photo pushes.
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA foreign_keys = ON;
@@ -94,6 +95,20 @@ CREATE TABLE IF NOT EXISTS ai_suggestions (
 
 CREATE INDEX IF NOT EXISTS idx_ai_suggestions_dismissed
   ON ai_suggestions(dismissed_at);
+
+CREATE TABLE IF NOT EXISTS sync_queue (
+  observation_id TEXT NOT NULL,
+  change_type TEXT NOT NULL
+    CHECK (change_type IN ('observation', 'signals', 'photo')),
+  enqueued_at TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  PRIMARY KEY (observation_id, change_type),
+  FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_queue_enqueued
+  ON sync_queue(enqueued_at);
 `;
 
 /** Additive migrations for existing installs created at schema v1. */
@@ -134,5 +149,19 @@ export const MIGRATIONS: Record<number, string[]> = {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_ai_suggestions_dismissed
       ON ai_suggestions(dismissed_at)`,
+  ],
+  6: [
+    `CREATE TABLE IF NOT EXISTS sync_queue (
+      observation_id TEXT NOT NULL,
+      change_type TEXT NOT NULL
+        CHECK (change_type IN ('observation', 'signals', 'photo')),
+      enqueued_at TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      PRIMARY KEY (observation_id, change_type),
+      FOREIGN KEY (observation_id) REFERENCES observations(id) ON DELETE CASCADE
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_sync_queue_enqueued
+      ON sync_queue(enqueued_at)`,
   ],
 };
