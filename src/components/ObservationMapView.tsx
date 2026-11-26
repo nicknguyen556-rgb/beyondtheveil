@@ -60,7 +60,7 @@ export function ObservationMapView({ observations }: ObservationMapViewProps) {
         <Text style={styles.emptyTitle}>No mapped spots yet</Text>
         <Text style={styles.emptyBody}>
           Observations need latitude and longitude (EXIF, GPS, or a map pin) to
-          appear here.
+          appear here. Start on Capture; setup notes in docs/LOCAL_SETUP.md.
         </Text>
       </View>
     );

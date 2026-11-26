@@ -103,7 +103,8 @@ export default function ObservationsScreen() {
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>No observations yet</Text>
             <Text style={styles.emptyBody}>
-              Capture or import a photo. EXIF place/time (or GPS fallbacks) land on each row.
+              Use Capture to take or import a photo — EXIF place/time (or GPS) land on each
+              row. Weather keys and cloud sync are optional; see docs/LOCAL_SETUP.md.
             </Text>
           </View>
         ) : (

@@ -60,7 +60,8 @@ export function ObservationTimeline({ observations }: ObservationTimelineProps) 
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>Timeline is empty</Text>
         <Text style={styles.emptyBody}>
-          Captures appear here in day order once you add observations.
+          Captures appear here in day order once you add observations from the
+          Capture tab. First-run setup: docs/LOCAL_SETUP.md.
         </Text>
       </View>
     );

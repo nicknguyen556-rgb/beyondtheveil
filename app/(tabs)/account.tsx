@@ -89,7 +89,7 @@ export default function AccountScreen() {
         <Text style={styles.body}>
           {configured
             ? 'Supabase URL/key detected. Auth and sync are available.'
-            : 'Supabase not configured. Copy .env.example → set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY. App stays local-only without secrets.'}
+            : 'Supabase not configured. Copy .env.example → .env, set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY, then restart Metro. Step-by-step: docs/LOCAL_SETUP.md. App stays local-only without secrets.'}
         </Text>
       </View>
 
