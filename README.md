@@ -19,12 +19,15 @@ Photo-anchored field journaling for iOS and Android. Capture pins place and time
 
 ## Develop
 
+**Full first-run guide:** [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) — Expo install/run (iOS/Android), `.env` from `.env.example`, Open-Meteo vs keyed weather providers, Supabase (`supabase/schema.sql`), and premium entitlement.
+
 ```bash
 npm install
+cp .env.example .env   # optional; app works local-only without it
 npm start
 ```
 
-Then open in Expo Go, iOS simulator, or Android emulator.
+Then open in Expo Go, iOS simulator (`i` / `npm run ios`), or Android emulator (`a` / `npm run android`).
 
 ```bash
 npm run typecheck
@@ -82,8 +85,8 @@ Charting uses `react-native-svg` for clear line / scatter / bar series. Shared a
 
 Free stays fully usable offline. Premium unlocks Supabase Auth + observation/photo/signal sync across devices.
 
-1. Copy `.env.example` → `.env` and set `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` (never commit real keys).
-2. Apply `supabase/schema.sql` in your Supabase project; create private Storage bucket `observation-photos`.
+1. Copy `.env.example` → `.env` and set `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` (never commit real keys). Optional: `EXPO_PUBLIC_OPENWEATHER_API_KEY` / `EXPO_PUBLIC_WEATHERAPI_KEY` for keyed weather sources.
+2. Apply `supabase/schema.sql` in your Supabase project; create private Storage bucket `observation-photos` with `{user_id}/` policies (steps in [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)).
 3. In the **Account** tab: enable the local premium flag (or set `profiles.entitlement`), sign in, then **Sync now**.
 
 Sync is last-write-wins per observation using `updated_at` (merge decisions shown with timestamps). Missing env, free entitlement, or offline network fail gracefully — local SQLite keeps working.
